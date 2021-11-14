@@ -68,6 +68,7 @@ async function run(api) {
   const aliceDao = await getAccountAsync(aliceDaoId);
   logSuccess(`Alice DAO created: ${JSON.stringify(aliceDao)}\n`);
 
+  
 
   /**
    * Create Bob DAO actor
@@ -93,6 +94,7 @@ async function run(api) {
   await fundAddress(bobDaoAddress, api);
   const bobDao = await getAccountAsync(bobDaoId);
   logSuccess(`Bob DAO created: ${JSON.stringify(bobDao)}\n`)
+
 
 
   /**
@@ -121,6 +123,7 @@ async function run(api) {
   logSuccess(`Charlie DAO created: ${JSON.stringify(charlieDao)}\n`)
 
 
+
   /**
    * Create Dave DAO actor
    */
@@ -145,6 +148,7 @@ async function run(api) {
   await fundAddress(daveDaoAddress, api);
   const daveDao = await getAccountAsync(daveDaoId);
   logSuccess(`Dave DAO created: ${JSON.stringify(daveDao)}\n`)
+
 
 
   /**
@@ -192,7 +196,7 @@ async function run(api) {
   const createAliceBobDaoTx = api.tx.utility.batchAll([
     api.tx.deipDao.onBehalf(aliceDaoId, api.tx.multisig.asMultiThreshold1([bobDaoAddress], createAliceBobDaoOp))
   ]);
-  await createAliceBobDaoTx.signAsync(alice);
+  await createAliceBobDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(createAliceBobDaoTx.toHex());
   await fundAddress(aliceBobDaoAddress, api);
   const aliceBobDao = await getAccountAsync(aliceBobDaoId);
@@ -201,28 +205,28 @@ async function run(api) {
 
 
   /**
-   * Create Alice-Charlie multisig DAO actor with a threshold equal to 1 signature
+   * Create Eve-Charlie multisig DAO actor with a threshold equal to 1 signature
    */
-  logInfo(`Creating Alice-Charlie multisig DAO ...`);
-  const aliceCharlieDaoId = randomAsHex(20);
-  const aliceCharlieDaoAddress = daoIdToAddress(aliceCharlieDaoId, api);
-  const createAliceCharlieDaoOp = api.tx.deipDao.create(
-    /* ID */ aliceCharlieDaoId,
+  logInfo(`Creating Eve-Charlie multisig DAO ...`);
+  const eveCharlieDaoId = randomAsHex(20);
+  const eveCharlieDaoAddress = daoIdToAddress(eveCharlieDaoId, api);
+  const createEveCharlieDaoOp = api.tx.deipDao.create(
+    /* ID */ eveCharlieDaoId,
     /* Authority */ {
-      "signatories": [aliceDaoAddress, charlieDaoAddress],
+      "signatories": [eveDaoAddress, charlieDaoAddress],
       "threshold": 1
     },
-    /* Metadata Hash */ keccakAsHex(JSON.stringify({ "description": "Alice-Charlie multisig DAO" }), 256)
+    /* Metadata Hash */ keccakAsHex(JSON.stringify({ "description": "Eve-Charlie multisig DAO" }), 256)
   );
 
-  const createAliceCharlieDaoTx = api.tx.utility.batchAll([
-    api.tx.deipDao.onBehalf(aliceDaoId, api.tx.multisig.asMultiThreshold1([charlieDaoAddress], createAliceCharlieDaoOp))
+  const createEveCharlieDaoTx = api.tx.utility.batchAll([
+    api.tx.deipDao.onBehalf(eveDaoId, api.tx.multisig.asMultiThreshold1([charlieDaoAddress], createEveCharlieDaoOp))
   ]);
-  await createAliceCharlieDaoTx.signAsync(alice);
-  await sendTxAndWaitAsync(createAliceCharlieDaoTx.toHex());
-  await fundAddress(aliceCharlieDaoAddress, api);
-  const aliceCharlieDao = await getAccountAsync(aliceCharlieDaoId);
-  logSuccess(`Alice-Charlie multisig DAO created: ${JSON.stringify(aliceCharlieDao)}\n`)
+  await createEveCharlieDaoTx.signAsync(eve); // 1st approval from Eve DAO (final)
+  await sendTxAndWaitAsync(createEveCharlieDaoTx.toHex());
+  await fundAddress(eveCharlieDaoAddress, api);
+  const eveCharlieDao = await getAccountAsync(eveCharlieDaoId);
+  logSuccess(`Alice-Eve multisig DAO created: ${JSON.stringify(eveCharlieDao)}\n`)
  
 
 
@@ -232,6 +236,7 @@ async function run(api) {
   logInfo(`Creating Bob-Dave multisig DAO ...`);
   const bobDaveDaoId = randomAsHex(20);
   const bobDaveDaoAddress = daoIdToAddress(bobDaveDaoId, api);
+  const bobDaveMultiAddress = getMultiAddress([bobDaoAddress, daveDaoAddress], 2);
   const createBobDaveDaoOp = api.tx.deipDao.create(
     /* ID */ bobDaveDaoId,
     /* Authority */ {
@@ -240,19 +245,18 @@ async function run(api) {
     },
     /* Metadata Hash */ keccakAsHex(JSON.stringify({ "description": "Bob-Dave multisig DAO" }), 256)
   );
-  const bobDaveMultiAddress = getMultiAddress([bobDaoAddress, daveDaoAddress], 2);
   const { weight } = await createBobDaveDaoOp.paymentInfo(bobDaveMultiAddress);
   const createBobDaveDaoByBobTx = api.tx.utility.batchAll([
     api.tx.deipDao.onBehalf(bobDaoId, api.tx.multisig.approveAsMulti(2, [daveDaoAddress], null, createBobDaveDaoOp.method.hash, weight))
   ]);
-  await createBobDaveDaoByBobTx.signAsync(bob); // first approval
+  await createBobDaveDaoByBobTx.signAsync(bob); // 1st approval from Bob DAO
   await sendTxAndWaitAsync(createBobDaveDaoByBobTx.toHex());
   const multisigInfo1 = await api.query.multisig.multisigs(bobDaveMultiAddress, createBobDaveDaoOp.method.hash);
   const timepoint = multisigInfo1.isSome ? multisigInfo1.unwrap().when : null;
   const createBobDaveDaoByDaveTx = api.tx.utility.batchAll([
     api.tx.deipDao.onBehalf(daveDaoId, api.tx.multisig.asMulti(2, [bobDaoAddress], timepoint, createBobDaveDaoOp.method.toHex(), true, weight))
   ]);
-  await createBobDaveDaoByDaveTx.signAsync(dave); // final approval
+  await createBobDaveDaoByDaveTx.signAsync(dave); // 2nd approval from Dave DAO (final)
   await sendTxAndWaitAsync(createBobDaveDaoByDaveTx.toHex());
   await fundAddress(bobDaveDaoAddress, api);
   const bobDaveDao = await getAccountAsync(bobDaveDaoId);
@@ -261,96 +265,90 @@ async function run(api) {
 
 
   /**
-   * Create Multigroup-1 (Alice-Charlie, Bob-Dave) multisig DAO actor with a threshold equal to 1 signature
+   * Create Multigroup-1 (Eve-Charlie, Bob-Dave) multisig DAO actor with a threshold equal to 1 signature
    */
-  logInfo(`Creating Multigroup-1 (Alice-Charlie, Bob-Dave) multisig DAO ...`);
+  logInfo(`Creating Multigroup-1 (Eve-Charlie, Bob-Dave) multisig DAO ...`);
   const multigroupDaoId = randomAsHex(20);
   const multigroupDaoAddress = daoIdToAddress(multigroupDaoId, api);
   const createMultigroupOp = api.tx.deipDao.create(
     /* ID */ multigroupDaoId,
     /* Authority */ {
-      "signatories": [aliceCharlieDaoAddress, bobDaveDaoAddress],
+      "signatories": [eveCharlieDaoAddress, bobDaveDaoAddress],
       "threshold": 1
     },
     /* Metadata Hash */ keccakAsHex(JSON.stringify({ "description": "Multigroup-1 multisig DAO" }), 256)
   );
-  const createMultigroupDaoOp = api.tx.deipDao.onBehalf(
-    aliceDaoId,
-    api.tx.multisig.asMultiThreshold1(
-      [charlieDaoAddress],
-      api.tx.deipDao.onBehalf(
-        aliceCharlieDaoId,
-        api.tx.multisig.asMultiThreshold1(
-          [bobDaveDaoAddress],
-          createMultigroupOp
-        )
-      )
-    )
-  );
-  const createMultiDaoTx = api.tx.utility.batchAll([createMultigroupDaoOp]);
-  await createMultiDaoTx.signAsync(alice);
-  await sendTxAndWaitAsync(createMultiDaoTx.toHex());
+
+  const createMultigroupDaoByEveCharlieDaoOp = api.tx.deipDao.onBehalf(eveCharlieDaoId, api.tx.multisig.asMultiThreshold1([bobDaveDaoAddress], createMultigroupOp));
+  const createMultigroupDaoByEveCharlieDaoFromEveDaoOp = api.tx.deipDao.onBehalf(eveDaoId, api.tx.multisig.asMultiThreshold1([charlieDaoAddress], createMultigroupDaoByEveCharlieDaoOp));
+  const createMultigroupDaoByEveCharlieDaoFromEveDaoTx = api.tx.utility.batchAll([
+    createMultigroupDaoByEveCharlieDaoFromEveDaoOp
+  ]);
+  await createMultigroupDaoByEveCharlieDaoFromEveDaoTx.signAsync(eve); // 1st approval from Eve DAO on behalf Eve-Charlie DAO (final)
+  await sendTxAndWaitAsync(createMultigroupDaoByEveCharlieDaoFromEveDaoTx.toHex());
   await fundAddress(multigroupDaoAddress, api);
   const multigroupDao = await getAccountAsync(multigroupDaoId);
-  logSuccess(`Multigroup-1 (Alice-Charlie, Bob-Dave) multisig DAO created: ${JSON.stringify(multigroupDao)}\n`)
+  logSuccess(`Multigroup-1 (Eve-Charlie, Bob-Dave) multisig DAO created: ${JSON.stringify(multigroupDao)}\n`)
+
 
 
   /**
-   * Create Multigroup-2 (Alice-Charlie, Bob-Dave) multisig DAO actor with a threshold equal to 2 signatures
+   * Create Multigroup-2 (Eve-Charlie, Bob-Dave) multisig DAO actor with a threshold equal to 2 signatures
    */
-  logInfo(`Creating Multigroup-2 (Alice-Charlie, Bob-Dave) multisig DAO ...`);
+  logInfo(`Creating Multigroup-2 (Eve-Charlie, Bob-Dave) multisig DAO ...`);
   const multigroup2DaoId = randomAsHex(20);
   const multigroup2DaoAddress = daoIdToAddress(multigroup2DaoId, api);
+  const multigroup2MultiAddress = getMultiAddress([eveCharlieDaoAddress, bobDaveDaoAddress], 2);
   const createMultigroup2Op = api.tx.deipDao.create(
     /* ID */ multigroup2DaoId,
     /* Authority */ {
-      "signatories": [aliceCharlieDaoAddress, bobDaveDaoAddress],
+      "signatories": [eveCharlieDaoAddress, bobDaveDaoAddress],
       "threshold": 2
     },
     /* Metadata Hash */ keccakAsHex(JSON.stringify({ "description": "Multigroup-2 multisig DAO" }), 256)
   );
-  const multigroup2MultiAddress = getMultiAddress([aliceCharlieDaoAddress, bobDaveDaoAddress], 2);
+
   const { weight: weight2 } = await createMultigroup2Op.paymentInfo(multigroup2MultiAddress);
-  const createMultigroup2By1Tx = api.tx.utility.batchAll([
-    api.tx.deipDao.onBehalf(aliceDaoId,
-      api.tx.multisig.asMultiThreshold1(
-        [charlieDaoAddress],
-        api.tx.deipDao.onBehalf(
-          aliceCharlieDaoId,
-          api.tx.multisig.approveAsMulti(2, [bobDaveDaoAddress], null, createMultigroup2Op.method.hash, weight2)
-        )
-      )
-    )
+  const createMultigroup2DaoByEveCharlieDaoOp = api.tx.deipDao.onBehalf(
+    eveCharlieDaoId,
+    api.tx.multisig.approveAsMulti(2, [bobDaveDaoAddress], null, createMultigroup2Op.method.hash, weight2)
+  );
+  const createMultigroup2DaoByEveCharlieDaoFromEveDaoOp = api.tx.deipDao.onBehalf(eveDaoId, api.tx.multisig.asMultiThreshold1([charlieDaoAddress], createMultigroup2DaoByEveCharlieDaoOp));
+  const createMultigroup2DaoByEveCharlieDaoFromEveDaoTx = api.tx.utility.batchAll([
+    createMultigroup2DaoByEveCharlieDaoFromEveDaoOp
   ]);
-  await createMultigroup2By1Tx.signAsync(alice);
-  await sendTxAndWaitAsync(createMultigroup2By1Tx.toHex());
+  await createMultigroup2DaoByEveCharlieDaoFromEveDaoTx.signAsync(eve); // 1st approval from Eve DAO on behalf Eve-Charlie DAO
+  await sendTxAndWaitAsync(createMultigroup2DaoByEveCharlieDaoFromEveDaoTx.toHex());
+
 
   const multisigInfo2 = await api.query.multisig.multisigs(multigroup2MultiAddress, createMultigroup2Op.method.hash);
   const timepoint2 = multisigInfo2.isSome ? multisigInfo2.unwrap().when : null;
-  const approveOp1 = api.tx.deipDao.onBehalf(
+  const createMultigroup2DaoByBobDaveDaoOp = api.tx.deipDao.onBehalf(
     bobDaveDaoId,
-    api.tx.multisig.asMulti(2, [aliceCharlieDaoAddress], timepoint2, createMultigroup2Op.method.toHex(), true, weight2)
+    api.tx.multisig.asMulti(2, [eveCharlieDaoAddress], timepoint2, createMultigroup2Op.method.toHex(), true, weight2)
   );
-  const { weight: weight3 } = await approveOp1.paymentInfo(bobDaveDaoAddress);
-  const approveOp2 = api.tx.multisig.approveAsMulti(2, [daveDaoAddress], null, approveOp1.method.hash, weight3)
-  const createMultigroup2By2Tx = api.tx.utility.batchAll([
-    api.tx.deipDao.onBehalf(bobDaoId, approveOp2)
+  const { weight: weight3 } = await createMultigroup2DaoByBobDaveDaoOp.paymentInfo(bobDaveDaoAddress);
+  const createMultigroup2DaoByBobDaveDaoFromBobDaoOp = api.tx.deipDao.onBehalf(bobDaoId, api.tx.multisig.approveAsMulti(2, [daveDaoAddress], null, createMultigroup2DaoByBobDaveDaoOp.method.hash, weight3));
+  const createMultigroup2DaoByBobDaveDaoFromBobDaoTx = api.tx.utility.batchAll([
+    createMultigroup2DaoByBobDaveDaoFromBobDaoOp
   ]);
-  await createMultigroup2By2Tx.signAsync(bob);
-  await sendTxAndWaitAsync(createMultigroup2By2Tx.toHex());
+  await createMultigroup2DaoByBobDaveDaoFromBobDaoTx.signAsync(bob); // 2nd approval from Bob DAO on behalf Bob-Dave DAO
+  await sendTxAndWaitAsync(createMultigroup2DaoByBobDaveDaoFromBobDaoTx.toHex());
 
 
-  const multisigInfo3 = await api.query.multisig.multisigs(bobDaveMultiAddress, approveOp1.method.hash);
+  const multisigInfo3 = await api.query.multisig.multisigs(bobDaveMultiAddress, createMultigroup2DaoByBobDaveDaoOp.method.hash);
   const timepoint5 = multisigInfo3.isSome ? multisigInfo3.unwrap().when : null;
-  const approveOp3 = api.tx.multisig.asMulti(2, [bobDaoAddress], timepoint5, approveOp1.method.toHex(), true, weight3)
-  const createMultigroup2By3Tx = api.tx.utility.batchAll([
-    api.tx.deipDao.onBehalf(daveDaoId, approveOp3)
+  const createMultigroup2DaoByBobDaveDaoFromDaveDaoOp = api.tx.deipDao.onBehalf(daveDaoId, api.tx.multisig.asMulti(2, [bobDaoAddress], timepoint5, createMultigroup2DaoByBobDaveDaoOp.method.toHex(), true, weight3));
+  const createMultigroup2DaoByBobDaveDaoFromDaveDaoTx = api.tx.utility.batchAll([
+    createMultigroup2DaoByBobDaveDaoFromDaveDaoOp
   ]);
-  await createMultigroup2By3Tx.signAsync(dave);
-  await sendTxAndWaitAsync(createMultigroup2By3Tx.toHex());
+  await createMultigroup2DaoByBobDaveDaoFromDaveDaoTx.signAsync(dave); // 3rd approval from Dave DAO on behalf Bob-Dave DAO (final)
+  await sendTxAndWaitAsync(createMultigroup2DaoByBobDaveDaoFromDaveDaoTx.toHex());
+
   await fundAddress(multigroup2DaoAddress, api);
   const multigroup2Dao = await getAccountAsync(multigroup2DaoId);
-  logSuccess(`Multigroup-2 (Alice-Charlie, Bob-Dave) multisig DAO created: ${JSON.stringify(multigroup2Dao)}\n`)
+  logSuccess(`Multigroup-2 (Eve-Charlie, Bob-Dave) multisig DAO created: ${JSON.stringify(multigroup2Dao)}\n`)
+
 
 
   /**
@@ -366,11 +364,12 @@ async function run(api) {
     updateAliceDaoOp
   ]);
   debugger;
-  await updateAliceDaoTx.signAsync(alice);
+  await updateAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(updateAliceDaoTx.toHex());
   const updatedAliceDao = await getAccountAsync(aliceDaoId);
   logSuccess(`Alice DAO updated: ${JSON.stringify(updatedAliceDao)}\n`);
 
+  
 
   /**
    * Create Project on behalf of Alice DAO actor
@@ -390,11 +389,11 @@ async function run(api) {
   const createAliceDaoProjectTx = api.tx.utility.batchAll([
     createAliceDaoProjectOp
   ]);
-  debugger;
-  await createAliceDaoProjectTx.signAsync(alice);
+  await createAliceDaoProjectTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(createAliceDaoProjectTx.toHex());
   const aliceDaoProject = await getProjectAsync(aliceDaoProjectId);
   logSuccess(`Alice DAO Project created: ${JSON.stringify(aliceDaoProject)}\n`);
+
 
 
   /**
@@ -408,14 +407,62 @@ async function run(api) {
       /* "is_private": */ null
     )
   );
-  debugger;
   const updateAliceDaoProjectTx = api.tx.utility.batchAll([
     updateAliceDaoProjectOp
   ]);
-  await updateAliceDaoProjectTx.signAsync(alice);
+  await updateAliceDaoProjectTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(updateAliceDaoProjectTx.toHex());
   const updatedAliceDaoProject = await getProjectAsync(aliceDaoProjectId);
   logSuccess(`Alice DAO Project updated: ${JSON.stringify(updatedAliceDaoProject)}\n`);
+
+
+  /**
+   * Create Project on behalf of Multigroup-2 (Eve-Charlie, Bob-Dave) multisig DAO actor
+   */
+  logInfo(`Creating Multigroup-2 DAO Project ...`);
+  const multigroup2ProjectId = randomAsHex(20);
+  const createMultigroup2DaoProjectOp = api.tx.deipDao.onBehalf(multigroup2DaoId, api.tx.deip.createProject(
+    /* "is_private": */ false,
+    /* "external_id": */ multigroup2ProjectId,
+    /* "team_id": */ { Dao: multigroup2DaoId },
+    /* "description": */ `0x9e99ff385d287f245d85ebfce861c05ad580983749cec37af2b76b74da26a7c6`,
+    /* "domains": */[`0x8e2a3711649993a87848337b9b401dcf64425e2d`]
+  ));
+
+  const { weight: weight5 } = await createMultigroup2DaoProjectOp.paymentInfo(multigroup2MultiAddress);
+  const createMultigroup2DaoProjectByEveCharlieDaoOp = api.tx.deipDao.onBehalf(eveCharlieDaoId, api.tx.multisig.approveAsMulti(2, [bobDaveDaoAddress], null, createMultigroup2DaoProjectOp.method.hash, weight5));
+  const createMultigroup2DaoProjectByEveCharlieDaoFromEveDaoOp = api.tx.deipDao.onBehalf(eveDaoId, api.tx.multisig.asMultiThreshold1([charlieDaoAddress], createMultigroup2DaoProjectByEveCharlieDaoOp));
+  const createMultigroup2DaoProjectByEveCharlieDaoFromEveDaoTx = api.tx.utility.batchAll([
+    createMultigroup2DaoProjectByEveCharlieDaoFromEveDaoOp
+  ]);
+  await createMultigroup2DaoProjectByEveCharlieDaoFromEveDaoTx.signAsync(eve);
+  await sendTxAndWaitAsync(createMultigroup2DaoProjectByEveCharlieDaoFromEveDaoTx.toHex());
+
+
+  const info6 = await api.query.multisig.multisigs(multigroup2MultiAddress, createMultigroup2DaoProjectOp.method.hash);
+  const timepoint6 = info6.isSome ? info6.unwrap().when : null;
+  const createMultigroup2DaoProjectByBobDaveDaoOp = api.tx.deipDao.onBehalf(bobDaveDaoId, api.tx.multisig.asMulti(2, [eveCharlieDaoAddress], timepoint6, createMultigroup2DaoProjectOp.method.toHex(), true, weight5));
+  const { weight: weight7 } = await createMultigroup2DaoProjectByBobDaveDaoOp.paymentInfo(bobDaveDaoAddress);
+  const createMultigroup2DaoProjectByBobDaveDaoFromBobDaoOp = api.tx.deipDao.onBehalf(bobDaoId, api.tx.multisig.approveAsMulti(2, [daveDaoAddress], null, createMultigroup2DaoProjectByBobDaveDaoOp.method.hash, weight7));
+  const createMultigroup2DaoProjectByBobDaveDaoFromBobDaoTx = api.tx.utility.batchAll([
+    createMultigroup2DaoProjectByBobDaveDaoFromBobDaoOp
+  ]); 
+  await createMultigroup2DaoProjectByBobDaveDaoFromBobDaoTx.signAsync(bob);
+  await sendTxAndWaitAsync(createMultigroup2DaoProjectByBobDaveDaoFromBobDaoTx.toHex());
+
+
+  const info7 = await api.query.multisig.multisigs(bobDaveMultiAddress, createMultigroup2DaoProjectByBobDaveDaoOp.method.hash);
+  const timepoint7 = info7.isSome ? info7.unwrap().when : null;
+  const createMultigroup2DaoProjectByBobDaveDaoFromDaveDaoOp = api.tx.deipDao.onBehalf(daveDaoId, api.tx.multisig.asMulti(2, [bobDaoAddress], timepoint7, createMultigroup2DaoProjectByBobDaveDaoOp.method.toHex(), true, weight7));
+  const createMultigroup2DaoProjectByBobDaveDaoFromDaveDaoTx = api.tx.utility.batchAll([
+    createMultigroup2DaoProjectByBobDaveDaoFromDaveDaoOp
+  ]);
+  await createMultigroup2DaoProjectByBobDaveDaoFromDaveDaoTx.signAsync(dave);
+  await sendTxAndWaitAsync(createMultigroup2DaoProjectByBobDaveDaoFromDaveDaoTx.toHex());
+
+  const multigroup2DaoProject = await getProjectAsync(multigroup2ProjectId);
+  logSuccess(`Multigroup-2 DAO Project created: ${JSON.stringify(multigroup2DaoProject)}\n`);
+
 
 
 }
