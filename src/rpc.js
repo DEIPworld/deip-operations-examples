@@ -32,22 +32,33 @@ const rpcToChainNodeAsync = (method, params = []) => {
     });
 }
 
+const toHexFormat = (id) => {
+  const hexId = id.indexOf(`0x`) === 0 ? id : `0x${id}`;
+  return hexId;
+}
 
 const getAccountAsync = async function (id) {
-  const daoId = id.indexOf(`0x`) === 0 ? id : `0x${id}`;
-  return rpcToChainNodeAsync("deipDao_get", [null, daoId]);
+  return rpcToChainNodeAsync("deipDao_get", [null, toHexFormat(id)]);
 }
 
 
 const getProjectAsync = async function (id) {
-  const projectId = id.indexOf(`0x`) === 0 ? id : `0x${id}`;
-  return rpcToChainNodeAsync("deip_getProject", [null, projectId]);
+  return rpcToChainNodeAsync("deip_getProject", [null, toHexFormat(id)]);
 }
 
 
 const getProposalAsync = async function (id) {
-  const proposalId = id.indexOf(`0x`) === 0 ? id : `0x${id}`;
-  return rpcToChainNodeAsync("deipProposal_get", [null, proposalId]);
+  return rpcToChainNodeAsync("deipProposal_get", [null, toHexFormat(id)]);
+}
+
+
+const getAssetAsync = async function (id) {
+  return rpcToChainNodeAsync("assets_getAsset", [null, toHexFormat(id)]);
+}
+
+
+const getAssetBalanceByOwner = async function (address, assetId) {
+  return rpcToChainNodeAsync("assets_getAssetBalanceByOwner", [null, address, toHexFormat(assetId)]);
 }
 
 
@@ -72,6 +83,8 @@ export {
   getAccountAsync,
   getProjectAsync,
   getProposalAsync,
+  getAssetAsync,
+  getAssetBalanceByOwner,
   sendTxAsync,
   sendTxAndWaitAsync
 }
