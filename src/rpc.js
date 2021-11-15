@@ -45,6 +45,12 @@ const getProjectAsync = async function (id) {
 }
 
 
+const getProposalAsync = async function (id) {
+  const proposalId = id.indexOf(`0x`) === 0 ? id : `0x${id}`;
+  return rpcToChainNodeAsync("deipProposal_get", [null, proposalId]);
+}
+
+
 const sendTxAsync = (rawTx) => {
   return rpcToChainNodeAsync('author_submitExtrinsic', [rawTx]);
 }
@@ -63,9 +69,9 @@ const sendTxAndWaitAsync = (rawTx, timeout = config.DEIP_APPCHAIN_MILLISECS_PER_
 
 
 export {
-  rpcToChainNodeAsync,
   getAccountAsync,
   getProjectAsync,
+  getProposalAsync,
   sendTxAsync,
   sendTxAndWaitAsync
 }
