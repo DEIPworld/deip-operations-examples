@@ -5,8 +5,8 @@ import { HttpProvider } from '@polkadot/rpc-provider';
 import { TypeRegistry } from '@polkadot/types/create';
 import { Metadata } from '@polkadot/metadata';
 import { logInfo, logSuccess, logError, logWarn } from './log';
-import { getFaucetAccount, generateAccount, daoIdToAddress, getMultiAddress, getDefaultDomain } from './utils';
-import { sendTxAndWaitAsync, getAccountAsync, getProjectAsync, getProposalAsync, getAssetAsync, getAssetBalanceByOwner } from './rpc';
+import { getFaucetAccount, generateAccount, daoIdToAddress, getMultiAddress, getDefaultDomain, waitAsync } from './utils';
+import { sendTxAndWaitAsync, getAccountAsync, getProjectAsync, getProposalAsync, getAssetAsync, getAssetBalanceByOwnerAsync, getInvestmentOpportunityAsync } from './rpc';
 import { keccakAsHex, randomAsHex } from '@polkadot/util-crypto';
 
 
@@ -225,7 +225,7 @@ async function run(api) {
   await sendTxAndWaitAsync(createEveCharlieDaoTx.toHex());
   await fundAddress(eveCharlieDaoAddress, api);
   const eveCharlieDao = await getAccountAsync(eveCharlieDaoId);
-  logSuccess(`Alice-Eve multisig DAO created: \n${JSON.stringify(eveCharlieDao)}\n`)
+  logSuccess(`Eve-Charlie multisig DAO created: \n${JSON.stringify(eveCharlieDao)}\n`)
  
 
 
@@ -676,20 +676,41 @@ async function run(api) {
    * Issue some Stablecoin-1 to Bob Dao balance by Treasury Dao
    */
   logInfo(`Issuing Stabelcoin-1 to Bob Dao ...`);
-  const issueStablecoin1ByTreasuryDaoOp = api.tx.deipDao.onBehalf(treasuryDaoId,
+  const issueStablecoin1ToBobDaoByTreasuryDaoOp = api.tx.deipDao.onBehalf(treasuryDaoId,
     api.tx.deipAssets.issueAsset(
       /* assetId: */ stablecoin1Id,
       /* beneficiary */ { Dao: bobDaoId },
       /* amount */ 10000
     )
   );
-  const issueStablecoin1ByTreasuryDaoTx = api.tx.utility.batchAll([
-    issueStablecoin1ByTreasuryDaoOp
+  const issueStablecoin1ToBobDaoByTreasuryDaoTx = api.tx.utility.batchAll([
+    issueStablecoin1ToBobDaoByTreasuryDaoOp
   ]);
-  await issueStablecoin1ByTreasuryDaoTx.signAsync(treasury); // 1st approval from Treasury DAO (final)
-  await sendTxAndWaitAsync(issueStablecoin1ByTreasuryDaoTx.toHex());
-  const bobDaoStablecoin1Balance = await getAssetBalanceByOwner(bobDaoAddress, stablecoin1Id);
-  logSuccess(`Stabelcoin-1 issued to Bob-Dao: \n${JSON.stringify(bobDaoStablecoin1Balance)}\n`);
+  await issueStablecoin1ToBobDaoByTreasuryDaoTx.signAsync(treasury); // 1st approval from Treasury DAO (final)
+  await sendTxAndWaitAsync(issueStablecoin1ToBobDaoByTreasuryDaoTx.toHex());
+  const bobDaoStablecoin1Balance = await getAssetBalanceByOwnerAsync(bobDaoAddress, stablecoin1Id);
+  logSuccess(`Stabelcoin-1 issued to Bob Dao balance: \n${JSON.stringify(bobDaoStablecoin1Balance)}\n`);
+
+
+
+  /**
+   * Issue some Stablecoin-1 to Eve Dao balance by Treasury Dao
+   */
+  logInfo(`Issuing Stabelcoin-1 to Eve Dao ...`);
+  const issueStablecoin1ToEveDaoByTreasuryDaoOp = api.tx.deipDao.onBehalf(treasuryDaoId,
+    api.tx.deipAssets.issueAsset(
+      /* assetId: */ stablecoin1Id,
+      /* beneficiary */ { Dao: eveDaoId },
+      /* amount */ 5000
+    )
+  );
+  const issueStablecoin1ToEveDaoByTreasuryDaoTx = api.tx.utility.batchAll([
+    issueStablecoin1ToEveDaoByTreasuryDaoOp
+  ]);
+  await issueStablecoin1ToEveDaoByTreasuryDaoTx.signAsync(treasury); // 1st approval from Treasury DAO (final)
+  await sendTxAndWaitAsync(issueStablecoin1ToEveDaoByTreasuryDaoTx.toHex());
+  const eveDaoStablecoin1Balance = await getAssetBalanceByOwnerAsync(eveDaoAddress, stablecoin1Id);
+  logSuccess(`Stabelcoin-1 issued to Eve Dao balance: \n${JSON.stringify(eveDaoStablecoin1Balance)}\n`);
 
 
 
@@ -738,23 +759,106 @@ async function run(api) {
 
 
   /**
-   * Issue some NFT-1 to Charlie Dao balance by Alice Dao
+   * Issue some NFT-1 to Alice Dao balance by Alice Dao
    */
-  logInfo(`Issuing NFT-1 to Charlie Dao...`);
-  const issueNft1ByAliceDaoOp = api.tx.deipDao.onBehalf(aliceDaoId,
+  logInfo(`Issuing NFT-1 to Alice Dao ...`);
+  const issueNft1ToAliceDaoByAliceDaoOp = api.tx.deipDao.onBehalf(aliceDaoId,
     api.tx.deipAssets.issueAsset(
       /* assetId: */ nft1Id,
-      /* beneficiary */ { Dao: charlieDaoId },
-      /* amount */ 20000
+      /* beneficiary */ { Dao: aliceDaoId },
+      /* amount */ 15000
     )
   );
-  const issueNft1ByAliceDaoTx = api.tx.utility.batchAll([
-    issueNft1ByAliceDaoOp
+  const issueNft1ToAliceDaoByAliceDaoTx = api.tx.utility.batchAll([
+    issueNft1ToAliceDaoByAliceDaoOp
   ]);
-  await issueNft1ByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
-  await sendTxAndWaitAsync(issueNft1ByAliceDaoTx.toHex());
-  const charlieDaoNft1Balance = await getAssetBalanceByOwner(charlieDaoAddress, nft1Id);
-  logSuccess(`NFT-1 issued to Charlie Dao: \n${JSON.stringify(charlieDaoNft1Balance)}\n`);
+  await issueNft1ToAliceDaoByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
+  await sendTxAndWaitAsync(issueNft1ToAliceDaoByAliceDaoTx.toHex());
+  const aliceDaoNft1Balance = await getAssetBalanceByOwnerAsync(aliceDaoAddress, nft1Id);
+  logSuccess(`NFT-1 issued to Alice Dao balance: \n${JSON.stringify(aliceDaoNft1Balance)}\n`);
+
+
+
+  /**
+   * Create an InvestmentOpportunity-1 by Alice Dao
+   */
+  logInfo(`Creating InvestmentOpportunity-1 by Alice Dao ...`);
+  const invstOpp1Id = randomAsHex(20);
+  const utcNow = Date.now();
+  const invstOpp1StartsInMillisecs = 5000;
+  const startTime = utcNow + invstOpp1StartsInMillisecs;
+  const endTime = utcNow + 3e6;
+  const createInvestmentOpportunityByAliceDaoOp = api.tx.deipDao.onBehalf(aliceDaoId,
+    api.tx.deip.createInvestmentOpportunity(
+      /* external_id: */ invstOpp1Id,
+      /* creator: */ { Dao: aliceDaoId },
+      /* shares: */ [{ id: nft1Id, amount: { "0": 10000 } }],
+      /* funding_model: */ {
+        SimpleCrowdfunding: {
+          start_time: startTime,
+          end_time: endTime,
+          soft_cap: { id: stablecoin1Id, amount: { "0": 3000 } },
+          hard_cap: { id: stablecoin1Id, amount: { "0": 5000 } }
+        }
+      }
+    )
+  );
+
+  const createInvestmentOpportunityByAliceDaoTx = api.tx.utility.batchAll([
+    createInvestmentOpportunityByAliceDaoOp
+  ]);
+  await createInvestmentOpportunityByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
+  await sendTxAndWaitAsync(createInvestmentOpportunityByAliceDaoTx.toHex());
+  const invstOpp = await getInvestmentOpportunityAsync(invstOpp1Id);
+  logSuccess(`InvestmentOpportunity-1 created: \n${JSON.stringify(invstOpp)}\n`);
+
+  logInfo(`Waiting for InvestmentOpportunity-1 activation ...\n`);
+  await waitAsync(invstOpp1StartsInMillisecs + 2000);
+
+
+  /**
+   * Invest some Stabelcoin-1 to InvestmentOpportunity-1 to obtain NFT-1 by Bob Dao
+   */
+  logInfo(`Investing to InvestmentOpportunity-1 by Bob Dao ...`);
+  const investToInvestmentOpportunity1ByBobDaoOp = api.tx.deipDao.onBehalf(bobDaoId,
+    api.tx.deip.invest(
+      /* investment_opportunity_id: */ invstOpp1Id,
+      /* amount: */ { id: stablecoin1Id, amount: { "0": 2000 } }
+    )
+  );
+  const investToInvestmentOpportunity1ByBobDaoTx = api.tx.utility.batchAll([
+    investToInvestmentOpportunity1ByBobDaoOp
+  ]);
+  await investToInvestmentOpportunity1ByBobDaoTx.signAsync(bob); // 1st approval from Bob DAO (final)
+  await sendTxAndWaitAsync(investToInvestmentOpportunity1ByBobDaoTx.toHex());
+  logSuccess(`Invested to InvestmentOpportunity-1 by Bob Dao\n`);
+
+
+
+  /**
+   * Invest some Stabelcoin-1 to InvestmentOpportunity-1 to obtain NFT-1 by Eve Dao
+   */
+  logInfo(`Investing to InvestmentOpportunity-1 by Eve Dao ...`);
+  const investToInvestmentOpportunity1ByEveDaoOp = api.tx.deipDao.onBehalf(eveDaoId,
+    api.tx.deip.invest(
+      /* investment_opportunity_id: */ invstOpp1Id,
+      /* amount: */ { id: stablecoin1Id, amount: { "0": 4000 } }
+    )
+  );
+  const investToInvestmentOpportunity1ByEveDaoTx = api.tx.utility.batchAll([
+    investToInvestmentOpportunity1ByEveDaoOp
+  ]);
+  await investToInvestmentOpportunity1ByEveDaoTx.signAsync(eve);
+  await sendTxAndWaitAsync(investToInvestmentOpportunity1ByEveDaoTx.toHex()); // 1st approval from Eve DAO (final)
+  logSuccess(`Invested to InvestmentOpportunity-1 by Eve Dao\n`);
+
+  const bobDaoNft1Balance = await getAssetBalanceByOwnerAsync(bobDaoAddress, nft1Id);
+  logSuccess(`Invested to InvestmentOpportunity-1, NFT-1 Bob Dao balance: \n${JSON.stringify(bobDaoNft1Balance)}\n`);
+  const eveDaoNft1Balance = await getAssetBalanceByOwnerAsync(eveDaoAddress, nft1Id);
+  logSuccess(`Invested to InvestmentOpportunity-1, NFT-1 Eve Dao balance: \n${JSON.stringify(eveDaoNft1Balance)}\n`);
+  const aliceDaoNft1Balance2 = await getAssetBalanceByOwnerAsync(aliceDaoAddress, nft1Id);
+  logSuccess(`NFT-1 Alice Dao balance after finalized InvestmentOpportunity-1: \n${JSON.stringify(aliceDaoNft1Balance2)}\n`);
+
 
 
 }

@@ -47,6 +47,16 @@ const getDefaultDomain = () => {
   return defaultDomainId;
 }
 
+const waitAsync = (timeout) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      setTimeout(() => resolve(), timeout);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
 
 export {
   getFaucetAccount,
@@ -54,5 +64,6 @@ export {
   daoIdToAddress,
   pubKeyToAddress,
   getMultiAddress,
-  getDefaultDomain
+  getDefaultDomain,
+  waitAsync
 }

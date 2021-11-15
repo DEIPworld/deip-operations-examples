@@ -57,8 +57,13 @@ const getAssetAsync = async function (id) {
 }
 
 
-const getAssetBalanceByOwner = async function (address, assetId) {
+const getAssetBalanceByOwnerAsync = async function (address, assetId) {
   return rpcToChainNodeAsync("assets_getAssetBalanceByOwner", [null, address, toHexFormat(assetId)]);
+}
+
+
+const getInvestmentOpportunityAsync = async function (id) {
+  return rpcToChainNodeAsync("deip_getInvestmentOpportunity", [null, toHexFormat(id)]);
 }
 
 
@@ -84,7 +89,8 @@ export {
   getProjectAsync,
   getProposalAsync,
   getAssetAsync,
-  getAssetBalanceByOwner,
+  getAssetBalanceByOwnerAsync,
+  getInvestmentOpportunityAsync,
   sendTxAsync,
   sendTxAndWaitAsync
 }
