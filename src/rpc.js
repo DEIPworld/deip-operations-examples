@@ -67,6 +67,11 @@ const getInvestmentOpportunityAsync = async function (id) {
 }
 
 
+const getContractAgreementAsync = async function (id) {
+  return rpcToChainNodeAsync("deip_getContractAgreement", [null, toHexFormat(id)]);
+}
+
+
 const sendTxAsync = (rawTx) => {
   return rpcToChainNodeAsync('author_submitExtrinsic', [rawTx]);
 }
@@ -91,6 +96,7 @@ export {
   getAssetAsync,
   getAssetBalanceByOwnerAsync,
   getInvestmentOpportunityAsync,
+  getContractAgreementAsync,
   sendTxAsync,
   sendTxAndWaitAsync
 }

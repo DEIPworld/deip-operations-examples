@@ -5,9 +5,17 @@ import { HttpProvider } from '@polkadot/rpc-provider';
 import { TypeRegistry } from '@polkadot/types/create';
 import { Metadata } from '@polkadot/metadata';
 import { logInfo, logSuccess, logError, logWarn } from './log';
-import { getFaucetAccount, generateAccount, daoIdToAddress, getMultiAddress, getDefaultDomain, waitAsync } from './utils';
-import { sendTxAndWaitAsync, getAccountAsync, getProjectAsync, getProposalAsync, getAssetAsync, getAssetBalanceByOwnerAsync, getInvestmentOpportunityAsync } from './rpc';
 import { keccakAsHex, randomAsHex } from '@polkadot/util-crypto';
+import { getFaucetAccount, generateAccount, daoIdToAddress, getMultiAddress, getDefaultDomain, waitAsync } from './utils';
+import { sendTxAndWaitAsync, 
+  getAccountAsync, 
+  getProjectAsync, 
+  getProposalAsync, 
+  getAssetAsync, 
+  getAssetBalanceByOwnerAsync, 
+  getInvestmentOpportunityAsync,
+  getContractAgreementAsync
+} from './rpc';
 
 
 
@@ -713,6 +721,26 @@ async function run(api) {
   logSuccess(`Stabelcoin-1 issued to Eve Dao balance: \n${JSON.stringify(eveDaoStablecoin1Balance)}\n`);
 
 
+  /**
+ * Issue some Stablecoin-1 to Charlie Dao balance by Treasury Dao
+ */
+  logInfo(`Issuing Stabelcoin-1 to Charlie Dao ...`);
+  const issueStablecoin1ToCharlieDaoByTreasuryDaoOp = api.tx.deipDao.onBehalf(treasuryDaoId,
+    api.tx.deipAssets.issueAsset(
+      /* assetId: */ stablecoin1Id,
+      /* beneficiary */ { Dao: charlieDaoId },
+      /* amount */ 3000
+    )
+  );
+  const issueStablecoin1ToCharlieDaoByTreasuryDaoTx = api.tx.utility.batchAll([
+    issueStablecoin1ToCharlieDaoByTreasuryDaoOp
+  ]);
+  await issueStablecoin1ToCharlieDaoByTreasuryDaoTx.signAsync(treasury); // 1st approval from Treasury DAO (final)
+  await sendTxAndWaitAsync(issueStablecoin1ToCharlieDaoByTreasuryDaoTx.toHex());
+  const charlieDaoStablecoin1Balance = await getAssetBalanceByOwnerAsync(charlieDaoAddress, stablecoin1Id);
+  logSuccess(`Stabelcoin-1 issued to Charlie Dao balance: \n${JSON.stringify(charlieDaoStablecoin1Balance)}\n`);
+
+
 
   /**
    * Create NFT-1 for Project-1 by Alice Dao
@@ -784,10 +812,7 @@ async function run(api) {
    */
   logInfo(`Creating InvestmentOpportunity-1 by Alice Dao ...`);
   const invstOpp1Id = randomAsHex(20);
-  const utcNow = Date.now();
   const invstOpp1StartsInMillisecs = 5000;
-  const startTime = utcNow + invstOpp1StartsInMillisecs;
-  const endTime = utcNow + 3e6;
   const createInvestmentOpportunityByAliceDaoOp = api.tx.deipDao.onBehalf(aliceDaoId,
     api.tx.deip.createInvestmentOpportunity(
       /* external_id: */ invstOpp1Id,
@@ -795,8 +820,8 @@ async function run(api) {
       /* shares: */ [{ id: nft1Id, amount: { "0": 10000 } }],
       /* funding_model: */ {
         SimpleCrowdfunding: {
-          start_time: startTime,
-          end_time: endTime,
+          start_time: Date.now() + invstOpp1StartsInMillisecs,
+          end_time: Date.now() + 3e6,
           soft_cap: { id: stablecoin1Id, amount: { "0": 3000 } },
           hard_cap: { id: stablecoin1Id, amount: { "0": 5000 } }
         }
@@ -812,7 +837,7 @@ async function run(api) {
   const invstOpp = await getInvestmentOpportunityAsync(invstOpp1Id);
   logSuccess(`InvestmentOpportunity-1 created: \n${JSON.stringify(invstOpp)}\n`);
 
-  logInfo(`Waiting for InvestmentOpportunity-1 activation ...\n`);
+  logInfo(`Waiting for InvestmentOpportunity-1 activation time ...\n`);
   await waitAsync(invstOpp1StartsInMillisecs + 2000);
 
 
@@ -858,6 +883,83 @@ async function run(api) {
   logSuccess(`Invested to InvestmentOpportunity-1, NFT-1 Eve Dao balance: \n${JSON.stringify(eveDaoNft1Balance)}\n`);
   const aliceDaoNft1Balance2 = await getAssetBalanceByOwnerAsync(aliceDaoAddress, nft1Id);
   logSuccess(`NFT-1 Alice Dao balance after finalized InvestmentOpportunity-1: \n${JSON.stringify(aliceDaoNft1Balance2)}\n`);
+
+
+
+  /**
+   * Initiate a contract agreement between Alice Dao and Charlie Dao parties to issue a License for Project-1
+   */
+  logInfo(`Initiate a LicenseAgreement-1 between Alice Dao and Charlie Dao parties ...`);
+  const licenseAgreement1Id = randomAsHex(20);
+  const licenseAgreement1SigningActivatesInMillisecs = 5000;
+  const createLicenseAgreement1ByAliceDaoOp = api.tx.deipDao.onBehalf(aliceDaoId,
+    api.tx.deip.createContractAgreement(
+      /* contractAgreementId: */ licenseAgreement1Id,
+      /* creator: */ { Dao: aliceDaoId },
+      /* parties: */[{ Dao: charlieDaoId }, { Dao: aliceDaoId }],
+      /* hash: */ keccakAsHex(JSON.stringify({ "description": "License Agreement for technology usage between Charlie Dao and Alice Dao parties" }), 256),
+      /* activation_time: */ Date.now() + licenseAgreement1SigningActivatesInMillisecs,
+      /* expiration_time: */ Date.now() + 3e6,
+      /* terms: */ {
+        LicenseAgreement: {
+          source: project1Id,
+          price: { id: stablecoin1Id, amount: { "0": 2000 } }
+        }
+      }
+    )
+  );
+  const createLicenseAgreement1ByAliceDaoTx = api.tx.utility.batchAll([
+    createLicenseAgreement1ByAliceDaoOp
+  ]);
+  await createLicenseAgreement1ByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
+  await sendTxAndWaitAsync(createLicenseAgreement1ByAliceDaoTx.toHex());
+  const initiatedLicenseAgreement1 = await getContractAgreementAsync(licenseAgreement1Id);
+  logSuccess(`LicenseAgreement-1 between Alice Dao and Charlie Dao parties is initiated: \n${JSON.stringify(initiatedLicenseAgreement1)}\n`);
+
+
+  logInfo(`Waiting for LicenseAgreement-1 signing period activation time ...\n`);
+  await waitAsync(licenseAgreement1SigningActivatesInMillisecs + 2000);
+
+
+
+  /**
+   * Accept contract agreement by Alice Dao
+   */
+  logInfo(`Accepting LicenseAgreement-1 by Alice Dao ...`);
+  const acceptLicenseAgreement1ByAliceDaoOp = api.tx.deipDao.onBehalf(aliceDaoId,
+    api.tx.deip.acceptContractAgreement(
+      /* contractAgreementId: */ licenseAgreement1Id,
+      /* party: */ { Dao: aliceDaoId }
+    )
+  );
+  const acceptLicenseAgreement1ByAliceDaoTx = api.tx.utility.batchAll([
+    acceptLicenseAgreement1ByAliceDaoOp
+  ]);
+  await acceptLicenseAgreement1ByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
+  await sendTxAndWaitAsync(acceptLicenseAgreement1ByAliceDaoTx.toHex());
+  logSuccess(`Accepted LicenseAgreement-1 by Alice Dao\n`);
+
+
+
+  /**
+   * Accept contract agreement by Charlie Dao
+   */
+  logInfo(`Accepting LicenseAgreement-1 by Charlie Dao ...`);
+  const acceptLicenseAgreement1ByCharlieDaoOp = api.tx.deipDao.onBehalf(charlieDaoId,
+    api.tx.deip.acceptContractAgreement(
+      /* contractAgreementId: */ licenseAgreement1Id,
+      /* party: */ { Dao: charlieDaoId }
+    )
+  );
+  const acceptLicenseAgreement1ByCharlieDaoTx = api.tx.utility.batchAll([
+    acceptLicenseAgreement1ByCharlieDaoOp
+  ]);
+  await acceptLicenseAgreement1ByCharlieDaoTx.signAsync(charlie); // 1st approval from Charlie DAO (final)
+  await sendTxAndWaitAsync(acceptLicenseAgreement1ByCharlieDaoTx.toHex());
+  logSuccess(`Accepted LicenseAgreement-1 by Charlie Dao\n`);
+
+  const finalizedLicenseAgreement1 = await getContractAgreementAsync(licenseAgreement1Id);
+  logSuccess(`LicenseAgreement-1 between Alice Dao and Charlie Dao parties is finalized: \n${JSON.stringify(finalizedLicenseAgreement1)}\n`);
 
 
 
