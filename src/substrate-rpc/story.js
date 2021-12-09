@@ -1,20 +1,28 @@
-import config from './config';
+import config from './../config';
 import types from './types.json';
 import { ApiPromise } from '@polkadot/api/promise';
 import { HttpProvider } from '@polkadot/rpc-provider';
 import { TypeRegistry } from '@polkadot/types/create';
 import { Metadata } from '@polkadot/metadata';
-import { logInfo, logSuccess, logError, logWarn } from './log';
+import { logInfo, logSuccess, logError, logJsonResult } from './../log';
 import { keccakAsHex, randomAsHex } from '@polkadot/util-crypto';
-import { getFaucetAccount, generateAccount, daoIdToAddress, getMultiAddress, getDefaultDomain, waitAsync } from './utils';
-import { sendTxAndWaitAsync, 
-  getAccountAsync, 
-  getProjectAsync, 
-  getProposalAsync, 
-  getAssetAsync, 
-  getAssetBalanceByOwnerAsync, 
+import { 
+  getFaucetSeedAccount, 
+  genSeedAccount, 
+  daoIdToSubstrateAddress, 
+  getSubstrateMultiAddress, 
+  getDefaultDomain, 
+  waitAsync 
+} from './../utils';
+import {
+  getAccountAsync,
+  getProjectAsync,
+  getProposalAsync,
+  getAssetAsync,
+  getAssetBalanceByOwnerAsync,
   getInvestmentOpportunityAsync,
-  getContractAgreementAsync
+  getContractAgreementAsync,
+  sendTxAsync
 } from './rpc';
 
 
@@ -38,9 +46,15 @@ async function setup() {
 }
 
 
-async function fundAddress(addrees, api) {
-  const tx = api.tx.balances.transfer(addrees, config.DEIP_APPCHAIN_FAUCET_FUNDING_AMOUNT);
-  await tx.signAsync(getFaucetAccount());
+async function sendTxAndWaitAsync(rawTx, timeout = config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK) {
+  await sendTxAsync(rawTx);
+  await waitAsync(timeout);
+}
+
+
+async function fundAddressFromFaucet(addrees, api) {
+  const tx = api.tx.balances.transfer(addrees, config.DEIP_APPCHAIN_FAUCET_ACCOUNT.fundingAmount);
+  await tx.signAsync(getFaucetSeedAccount());
   await sendTxAndWaitAsync(tx.toHex());
 }
 
@@ -54,10 +68,10 @@ async function run(api) {
    * Create Alice DAO actor
    */
   logInfo(`Creating Alice DAO ...`);
-  const alice = generateAccount("alice");
-  await fundAddress(alice.address, api);
+  const alice = genSeedAccount("alice");
+  await fundAddressFromFaucet(alice.address, api);
   const aliceDaoId = randomAsHex(20);
-  const aliceDaoAddress = daoIdToAddress(aliceDaoId, api);
+  const aliceDaoAddress = daoIdToSubstrateAddress(aliceDaoId, api);
   const createAliceDaoOp = api.tx.deipDao.create(
     /* ID */ aliceDaoId,
     /* Authority */ {
@@ -71,20 +85,20 @@ async function run(api) {
   ]);
   await createAliceDaoTx.signAsync(alice);
   await sendTxAndWaitAsync(createAliceDaoTx.toHex());
-  await fundAddress(aliceDaoAddress, api);
+  await fundAddressFromFaucet(aliceDaoAddress, api);
   const aliceDao = await getAccountAsync(aliceDaoId);
-  logSuccess(`Alice DAO created: \n${JSON.stringify(aliceDao)}\n`);
+  logJsonResult(`Alice DAO created`, aliceDao);
 
-  
+
 
   /**
    * Create Bob DAO actor
    */
   logInfo(`Creating Bob DAO ...`);
-  const bob = generateAccount("bob");
-  await fundAddress(bob.address, api);
+  const bob = genSeedAccount("bob");
+  await fundAddressFromFaucet(bob.address, api);
   const bobDaoId = randomAsHex(20);
-  const bobDaoAddress = daoIdToAddress(bobDaoId, api);
+  const bobDaoAddress = daoIdToSubstrateAddress(bobDaoId, api);
   const createBobDaoOp = api.tx.deipDao.create(
     /* ID */ bobDaoId,
     /* Authority */ {
@@ -98,9 +112,9 @@ async function run(api) {
   ]);
   await createBobDaoTx.signAsync(bob);
   await sendTxAndWaitAsync(createBobDaoTx.toHex());
-  await fundAddress(bobDaoAddress, api);
+  await fundAddressFromFaucet(bobDaoAddress, api);
   const bobDao = await getAccountAsync(bobDaoId);
-  logSuccess(`Bob DAO created: \n${JSON.stringify(bobDao)}\n`)
+  logJsonResult(`Bob DAO created`, bobDao);
 
 
 
@@ -108,10 +122,10 @@ async function run(api) {
    * Create Charlie DAO actor
    */
   logInfo(`Creating Charlie DAO ...`);
-  const charlie = generateAccount("charlie");
-  await fundAddress(charlie.address, api);
+  const charlie = genSeedAccount("charlie");
+  await fundAddressFromFaucet(charlie.address, api);
   const charlieDaoId = randomAsHex(20);
-  const charlieDaoAddress = daoIdToAddress(charlieDaoId, api);
+  const charlieDaoAddress = daoIdToSubstrateAddress(charlieDaoId, api);
   const createCharlieDaoOp = api.tx.deipDao.create(
     /* ID */ charlieDaoId,
     /* Authority */ {
@@ -125,9 +139,9 @@ async function run(api) {
   ]);
   await createCharlieDaoTx.signAsync(charlie);
   await sendTxAndWaitAsync(createCharlieDaoTx.toHex());
-  await fundAddress(charlieDaoAddress, api);
+  await fundAddressFromFaucet(charlieDaoAddress, api);
   const charlieDao = await getAccountAsync(charlieDaoId);
-  logSuccess(`Charlie DAO created: \n${JSON.stringify(charlieDao)}\n`)
+  logJsonResult(`Charlie DAO created`, charlieDao);
 
 
 
@@ -135,10 +149,10 @@ async function run(api) {
    * Create Dave DAO actor
    */
   logInfo(`Creating Dave DAO ...`);
-  const dave = generateAccount("dave");
-  await fundAddress(dave.address, api);
+  const dave = genSeedAccount("dave");
+  await fundAddressFromFaucet(dave.address, api);
   const daveDaoId = randomAsHex(20);
-  const daveDaoAddress = daoIdToAddress(daveDaoId, api);
+  const daveDaoAddress = daoIdToSubstrateAddress(daveDaoId, api);
   const createDaveDaoOp = api.tx.deipDao.create(
     /* ID */ daveDaoId,
     /* Authority */ {
@@ -152,9 +166,9 @@ async function run(api) {
   ]);
   await createDaveDaoTx.signAsync(dave);
   await sendTxAndWaitAsync(createDaveDaoTx.toHex());
-  await fundAddress(daveDaoAddress, api);
+  await fundAddressFromFaucet(daveDaoAddress, api);
   const daveDao = await getAccountAsync(daveDaoId);
-  logSuccess(`Dave DAO created: \n${JSON.stringify(daveDao)}\n`)
+  logJsonResult(`Dave DAO created`, daveDao);
 
 
 
@@ -162,10 +176,10 @@ async function run(api) {
    * Create Eve DAO actor
    */
   logInfo(`Creating Eve DAO ...`);
-  const eve = generateAccount("eve");
-  await fundAddress(eve.address, api);
+  const eve = genSeedAccount("eve");
+  await fundAddressFromFaucet(eve.address, api);
   const eveDaoId = randomAsHex(20);
-  const eveDaoAddress = daoIdToAddress(eveDaoId, api);
+  const eveDaoAddress = daoIdToSubstrateAddress(eveDaoId, api);
   const createEveDaoOp = api.tx.deipDao.create(
     /* ID */ eveDaoId,
     /* Authority */ {
@@ -179,9 +193,9 @@ async function run(api) {
   ]);
   await createEveDaoTx.signAsync(eve);
   await sendTxAndWaitAsync(createEveDaoTx.toHex());
-  await fundAddress(eveDaoAddress, api);
+  await fundAddressFromFaucet(eveDaoAddress, api);
   const eveDao = await getAccountAsync(eveDaoId);
-  logSuccess(`Eve DAO created: \n${JSON.stringify(eveDao)}\n`)
+  logJsonResult(`Eve DAO created`, eveDao);
 
 
 
@@ -190,7 +204,7 @@ async function run(api) {
    */
   logInfo(`Creating Alice-Bob multisig DAO ...`);
   const aliceBobDaoId = randomAsHex(20);
-  const aliceBobDaoAddress = daoIdToAddress(aliceBobDaoId, api);
+  const aliceBobDaoAddress = daoIdToSubstrateAddress(aliceBobDaoId, api);
   const createAliceBobDaoOp = api.tx.deipDao.create(
     /* ID */ aliceBobDaoId,
     /* Authority */ {
@@ -205,9 +219,9 @@ async function run(api) {
   ]);
   await createAliceBobDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(createAliceBobDaoTx.toHex());
-  await fundAddress(aliceBobDaoAddress, api);
+  await fundAddressFromFaucet(aliceBobDaoAddress, api);
   const aliceBobDao = await getAccountAsync(aliceBobDaoId);
-  logSuccess(`Alice-Bob multisig DAO created: \n${JSON.stringify(aliceBobDao)}\n`)
+  logJsonResult(`Alice-Bob multisig DAO created`, aliceBobDao);
 
 
 
@@ -216,7 +230,7 @@ async function run(api) {
    */
   logInfo(`Creating Eve-Charlie multisig DAO ...`);
   const eveCharlieDaoId = randomAsHex(20);
-  const eveCharlieDaoAddress = daoIdToAddress(eveCharlieDaoId, api);
+  const eveCharlieDaoAddress = daoIdToSubstrateAddress(eveCharlieDaoId, api);
   const createEveCharlieDaoOp = api.tx.deipDao.create(
     /* ID */ eveCharlieDaoId,
     /* Authority */ {
@@ -231,10 +245,10 @@ async function run(api) {
   ]);
   await createEveCharlieDaoTx.signAsync(eve); // 1st approval from Eve DAO (final)
   await sendTxAndWaitAsync(createEveCharlieDaoTx.toHex());
-  await fundAddress(eveCharlieDaoAddress, api);
+  await fundAddressFromFaucet(eveCharlieDaoAddress, api);
   const eveCharlieDao = await getAccountAsync(eveCharlieDaoId);
-  logSuccess(`Eve-Charlie multisig DAO created: \n${JSON.stringify(eveCharlieDao)}\n`)
- 
+  logJsonResult(`Eve-Charlie multisig DAO created`, eveCharlieDao);
+
 
 
   /**
@@ -242,8 +256,8 @@ async function run(api) {
    */
   logInfo(`Creating Bob-Dave multisig DAO ...`);
   const bobDaveDaoId = randomAsHex(20);
-  const bobDaveDaoAddress = daoIdToAddress(bobDaveDaoId, api);
-  const bobDaveMultiAddress = getMultiAddress([bobDaoAddress, daveDaoAddress], 2);
+  const bobDaveDaoAddress = daoIdToSubstrateAddress(bobDaveDaoId, api);
+  const bobDaveMultiAddress = getSubstrateMultiAddress([bobDaoAddress, daveDaoAddress], 2);
   const createBobDaveDaoOp = api.tx.deipDao.create(
     /* ID */ bobDaveDaoId,
     /* Authority */ {
@@ -265,9 +279,9 @@ async function run(api) {
   ]);
   await createBobDaveDaoByDaveTx.signAsync(dave); // 2nd approval from Dave DAO (final)
   await sendTxAndWaitAsync(createBobDaveDaoByDaveTx.toHex());
-  await fundAddress(bobDaveDaoAddress, api);
+  await fundAddressFromFaucet(bobDaveDaoAddress, api);
   const bobDaveDao = await getAccountAsync(bobDaveDaoId);
-  logSuccess(`Bob-Dave multisig DAO created: \n${JSON.stringify(bobDaveDao)}\n`)
+  logJsonResult(`Bob-Dave multisig DAO created`, bobDaveDao);
 
 
 
@@ -276,8 +290,8 @@ async function run(api) {
    */
   logInfo(`Creating Multigroup-1 (Eve-Charlie, Bob-Dave) multisig DAO ...`);
   const multigroup1DaoId = randomAsHex(20);
-  const multigroup1DaoAddress = daoIdToAddress(multigroup1DaoId, api);
-  const createMultigroupOp = api.tx.deipDao.create(
+  const multigroup1DaoAddress = daoIdToSubstrateAddress(multigroup1DaoId, api);
+  const createMultigroup1Op = api.tx.deipDao.create(
     /* ID */ multigroup1DaoId,
     /* Authority */ {
       "signatories": [eveCharlieDaoAddress, bobDaveDaoAddress],
@@ -286,16 +300,16 @@ async function run(api) {
     /* Metadata Hash */ keccakAsHex(JSON.stringify({ "description": "Multigroup-1 multisig DAO" }), 256)
   );
 
-  const createMultigroup1DaoByEveCharlieDaoOp = api.tx.deipDao.onBehalf(eveCharlieDaoId, api.tx.multisig.asMultiThreshold1([bobDaveDaoAddress], createMultigroupOp));
+  const createMultigroup1DaoByEveCharlieDaoOp = api.tx.deipDao.onBehalf(eveCharlieDaoId, api.tx.multisig.asMultiThreshold1([bobDaveDaoAddress], createMultigroup1Op));
   const createMultigroup1DaoByEveCharlieDaoByEveDaoOp = api.tx.deipDao.onBehalf(eveDaoId, api.tx.multisig.asMultiThreshold1([charlieDaoAddress], createMultigroup1DaoByEveCharlieDaoOp));
   const createMultigroup1DaoByEveCharlieDaoByEveDaoTx = api.tx.utility.batchAll([
     createMultigroup1DaoByEveCharlieDaoByEveDaoOp
   ]);
   await createMultigroup1DaoByEveCharlieDaoByEveDaoTx.signAsync(eve); // 1st approval from Eve DAO on behalf Eve-Charlie DAO (final)
   await sendTxAndWaitAsync(createMultigroup1DaoByEveCharlieDaoByEveDaoTx.toHex());
-  await fundAddress(multigroup1DaoAddress, api);
+  await fundAddressFromFaucet(multigroup1DaoAddress, api);
   const multigroup1Dao = await getAccountAsync(multigroup1DaoId);
-  logSuccess(`Multigroup-1 (Eve-Charlie, Bob-Dave) multisig DAO created: \n${JSON.stringify(multigroup1Dao)}\n`)
+  logJsonResult(`Multigroup-1 (Eve-Charlie, Bob-Dave) multisig DAO created`, multigroup1Dao);
 
 
 
@@ -304,8 +318,8 @@ async function run(api) {
    */
   logInfo(`Creating Multigroup-2 (Eve-Charlie, Bob-Dave) multisig DAO ...`);
   const multigroup2DaoId = randomAsHex(20);
-  const multigroup2DaoAddress = daoIdToAddress(multigroup2DaoId, api);
-  const multigroup2MultiAddress = getMultiAddress([eveCharlieDaoAddress, bobDaveDaoAddress], 2);
+  const multigroup2DaoAddress = daoIdToSubstrateAddress(multigroup2DaoId, api);
+  const multigroup2MultiAddress = getSubstrateMultiAddress([eveCharlieDaoAddress, bobDaveDaoAddress], 2);
   const createMultigroup2Op = api.tx.deipDao.create(
     /* ID */ multigroup2DaoId,
     /* Authority */ {
@@ -352,9 +366,9 @@ async function run(api) {
   await createMultigroup2DaoByBobDaveDaoByDaveDaoTx.signAsync(dave); // 3rd approval from Dave DAO on behalf Bob-Dave DAO (final)
   await sendTxAndWaitAsync(createMultigroup2DaoByBobDaveDaoByDaveDaoTx.toHex());
 
-  await fundAddress(multigroup2DaoAddress, api);
+  await fundAddressFromFaucet(multigroup2DaoAddress, api);
   const multigroup2Dao = await getAccountAsync(multigroup2DaoId);
-  logSuccess(`Multigroup-2 (Eve-Charlie, Bob-Dave) multisig DAO created: \n${JSON.stringify(multigroup2Dao)}\n`)
+  logJsonResult(`Multigroup-2 (Eve-Charlie, Bob-Dave) multisig DAO created`, multigroup2Dao);
 
 
 
@@ -362,10 +376,10 @@ async function run(api) {
    * Create Treasury DAO actor
    */
   logInfo(`Creating Treasury DAO ...`);
-  const treasury = generateAccount("treasury");
-  await fundAddress(treasury.address, api);
+  const treasury = genSeedAccount("treasury");
+  await fundAddressFromFaucet(treasury.address, api);
   const treasuryDaoId = randomAsHex(20);
-  const treasuryDaoAddress = daoIdToAddress(treasuryDaoId, api);
+  const treasuryDaoAddress = daoIdToSubstrateAddress(treasuryDaoId, api);
   const createTreasuryDaoOp = api.tx.deipDao.create(
     /* ID */ treasuryDaoId,
     /* Authority */ {
@@ -379,9 +393,9 @@ async function run(api) {
   ]);
   await createTreasuryDaoTx.signAsync(treasury);
   await sendTxAndWaitAsync(createTreasuryDaoTx.toHex());
-  await fundAddress(treasuryDaoAddress, api);
+  await fundAddressFromFaucet(treasuryDaoAddress, api);
   const treasuryDao = await getAccountAsync(treasuryDaoId);
-  logSuccess(`Treasury DAO created: \n${JSON.stringify(treasuryDao)}\n`);
+  logJsonResult(`Treasury DAO created`, treasuryDao);
 
 
 
@@ -400,9 +414,9 @@ async function run(api) {
   await updateAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(updateAliceDaoTx.toHex());
   const updatedAliceDao = await getAccountAsync(aliceDaoId);
-  logSuccess(`Alice DAO updated: \n${JSON.stringify(updatedAliceDao)}\n`);
+  logJsonResult(`Alice DAO updated`, updatedAliceDao);
 
-  
+
 
   /**
    * Create Project on behalf of Alice DAO actor
@@ -424,7 +438,7 @@ async function run(api) {
   await createProject1ByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(createProject1ByAliceDaoTx.toHex());
   const project1 = await getProjectAsync(project1Id);
-  logSuccess(`Alice DAO Project-1 created: \n${JSON.stringify(project1)}\n`);
+  logJsonResult(`Alice DAO Project-1 created`, project1);
 
 
 
@@ -445,10 +459,10 @@ async function run(api) {
   await updateProject1ByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(updateProject1ByAliceDaoTx.toHex());
   const updatedProject1 = await getProjectAsync(project1Id);
-  logSuccess(`Alice DAO Project-1 updated: \n${JSON.stringify(updatedProject1)}\n`);
+  logJsonResult(`Alice DAO Project-1 updated`, updatedProject1);
 
 
-  
+
   /**
    * Create Project on behalf of Multigroup-2 (Eve-Charlie, Bob-Dave) multisig DAO actor
    */
@@ -458,7 +472,7 @@ async function run(api) {
     /* "is_private": */ false,
     /* "external_id": */ project2Id,
     /* "team_id": */ { Dao: multigroup2DaoId },
-    /* "description": */ keccakAsHex(JSON.stringify({ "description": "Alice DAO Project" }), 256),
+    /* "description": */ keccakAsHex(JSON.stringify({ "description": "Multigroup-2 DAO Project" }), 256),
     /* "domains": */[getDefaultDomain()]
   ));
 
@@ -479,7 +493,7 @@ async function run(api) {
   const createProject2ByMultigroup2ByBobDaveDaoByBobDaoOp = api.tx.deipDao.onBehalf(bobDaoId, api.tx.multisig.approveAsMulti(2, [daveDaoAddress], null, createProject2ByMultigroup2ByBobDaveDaoOp.method.hash, weight7));
   const createProject2ByMultigroup2ByBobDaveDaoByBobDaoTx = api.tx.utility.batchAll([
     createProject2ByMultigroup2ByBobDaveDaoByBobDaoOp
-  ]); 
+  ]);
   await createProject2ByMultigroup2ByBobDaveDaoByBobDaoTx.signAsync(bob); // 2nd approval from Bob DAO on behalf Bob-Dave DAO
   await sendTxAndWaitAsync(createProject2ByMultigroup2ByBobDaveDaoByBobDaoTx.toHex());
 
@@ -494,7 +508,7 @@ async function run(api) {
   await sendTxAndWaitAsync(createProject2ByMultigroup2ByBobDaveDaoByDaveDaoTx.toHex());
 
   const multigroup2DaoProject = await getProjectAsync(project2Id);
-  logSuccess(`Multigroup-2 DAO Project-2 created: \n${JSON.stringify(multigroup2DaoProject)}\n`);
+  logJsonResult(`Multigroup-2 DAO Project-2 created`, multigroup2DaoProject);
 
 
 
@@ -515,7 +529,7 @@ async function run(api) {
           /* "is_private": */ false,
           /* "external_id": */ project3Id,
           /* "team_id": */ { Dao: aliceBobDaoId },
-          /* "description": */ keccakAsHex(JSON.stringify({ "description": "Alice DAO Project" }), 256),
+          /* "description": */ keccakAsHex(JSON.stringify({ "description": "Alice-Bob DAO Project" }), 256),
           /* "domains": */[getDefaultDomain()]
         ),
         account: { Dao: aliceBobDaoId }
@@ -525,7 +539,7 @@ async function run(api) {
           /* "is_private": */ false,
           /* "external_id": */ project4Id,
           /* "team_id": */ { Dao: bobDaveDaoId },
-          /* "description": */ keccakAsHex(JSON.stringify({ "description": "Alice DAO Project" }), 256),
+          /* "description": */ keccakAsHex(JSON.stringify({ "description": "Bob-Dave DAO Project" }), 256),
           /* "domains": */[getDefaultDomain()]
         ),
         account: { Dao: bobDaveDaoId }
@@ -556,7 +570,7 @@ async function run(api) {
   await createProposal1ByEveCharlieDaoByEveDaoTx.signAsync(eve); // 1st approval from Eve-Charlie DAO on behalf Eve DAO (final)
   await sendTxAndWaitAsync(createProposal1ByEveCharlieDaoByEveDaoTx.toHex());
   const proposal1 = await getProposalAsync(proposal1Id);
-  logSuccess(`Eve-Charlie DAO Proposal-1 created: \n${JSON.stringify(proposal1)}\n`);
+  logJsonResult(`Eve-Charlie DAO Proposal-1 created`, proposal1);
 
 
 
@@ -634,7 +648,7 @@ async function run(api) {
 
   const project3 = await getProjectAsync(project3Id);
   const project4 = await getProjectAsync(project4Id);
-  logSuccess(`Eve-Charlie DAO Proposal-1 resolved, Project-3 and Project-4 created: \n${JSON.stringify(project3)}\n${JSON.stringify(project4)}\n`);
+  logJsonResult(`Eve-Charlie DAO Proposal-1 resolved, Project-3 and Project-4 created`, { project3, project4 });
 
 
 
@@ -676,7 +690,7 @@ async function run(api) {
   await createStablecoin1ByAliceDaoTx.signAsync(treasury); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(createStablecoin1ByAliceDaoTx.toHex());
   const stablecoin1 = await getAssetAsync(stablecoin1Id);
-  logSuccess(`Stabelcoin-1 created: \n${JSON.stringify(stablecoin1)}\n`);
+  logJsonResult(`Stabelcoin-1 created`, stablecoin1);
 
 
 
@@ -697,7 +711,7 @@ async function run(api) {
   await issueStablecoin1ToBobDaoByTreasuryDaoTx.signAsync(treasury); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(issueStablecoin1ToBobDaoByTreasuryDaoTx.toHex());
   const bobDaoStablecoin1Balance = await getAssetBalanceByOwnerAsync(bobDaoAddress, stablecoin1Id);
-  logSuccess(`Stabelcoin-1 issued to Bob Dao balance: \n${JSON.stringify(bobDaoStablecoin1Balance)}\n`);
+  logJsonResult(`Stabelcoin-1 issued to Bob Dao balance`, bobDaoStablecoin1Balance);
 
 
 
@@ -718,12 +732,12 @@ async function run(api) {
   await issueStablecoin1ToEveDaoByTreasuryDaoTx.signAsync(treasury); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(issueStablecoin1ToEveDaoByTreasuryDaoTx.toHex());
   const eveDaoStablecoin1Balance = await getAssetBalanceByOwnerAsync(eveDaoAddress, stablecoin1Id);
-  logSuccess(`Stabelcoin-1 issued to Eve Dao balance: \n${JSON.stringify(eveDaoStablecoin1Balance)}\n`);
+  logJsonResult(`Stabelcoin-1 issued to Eve Dao balance`, eveDaoStablecoin1Balance);
 
 
   /**
- * Issue some Stablecoin-1 to Charlie Dao balance by Treasury Dao
- */
+   * Issue some Stablecoin-1 to Charlie Dao balance by Treasury Dao
+   */
   logInfo(`Issuing Stabelcoin-1 to Charlie Dao ...`);
   const issueStablecoin1ToCharlieDaoByTreasuryDaoOp = api.tx.deipDao.onBehalf(treasuryDaoId,
     api.tx.deipAssets.issueAsset(
@@ -738,7 +752,7 @@ async function run(api) {
   await issueStablecoin1ToCharlieDaoByTreasuryDaoTx.signAsync(treasury); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(issueStablecoin1ToCharlieDaoByTreasuryDaoTx.toHex());
   const charlieDaoStablecoin1Balance = await getAssetBalanceByOwnerAsync(charlieDaoAddress, stablecoin1Id);
-  logSuccess(`Stabelcoin-1 issued to Charlie Dao balance: \n${JSON.stringify(charlieDaoStablecoin1Balance)}\n`);
+  logJsonResult(`Stabelcoin-1 issued to Charlie Dao balance`, charlieDaoStablecoin1Balance);
 
 
 
@@ -782,7 +796,7 @@ async function run(api) {
   await createNft1ByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(createNft1ByAliceDaoTx.toHex());
   const nft1 = await getAssetAsync(nft1Id);
-  logSuccess(`NFT-1 created: \n${JSON.stringify(nft1)}\n`);
+  logJsonResult(`NFT-1 created`, nft1);
 
 
 
@@ -803,7 +817,28 @@ async function run(api) {
   await issueNft1ToAliceDaoByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(issueNft1ToAliceDaoByAliceDaoTx.toHex());
   const aliceDaoNft1Balance = await getAssetBalanceByOwnerAsync(aliceDaoAddress, nft1Id);
-  logSuccess(`NFT-1 issued to Alice Dao balance: \n${JSON.stringify(aliceDaoNft1Balance)}\n`);
+  logJsonResult(`NFT-1 issued to Alice Dao balance`, aliceDaoNft1Balance);
+
+
+
+  /**
+   * Transfer some NFT-1 to Charlie Dao balance by Alice Dao
+   */
+  logInfo(`Transferring some NFT-1 to Charlie Dao ...`);
+  const transferNft1ToCharlieDaoByAliceDaoOp = api.tx.deipDao.onBehalf(aliceDaoId,
+    api.tx.deipAssets.transfer(
+      /* assetId: */ nft1Id,
+      /* to: */ { Dao: charlieDaoId },
+      /* amount: */ 1000
+    )
+  );
+  const transferNft1ToCharlieDaoByAliceDaoTx = api.tx.utility.batchAll([
+    transferNft1ToCharlieDaoByAliceDaoOp
+  ]);
+  await transferNft1ToCharlieDaoByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
+  await sendTxAndWaitAsync(transferNft1ToCharlieDaoByAliceDaoTx.toHex());
+  const charlieDaoNft1Balance = await getAssetBalanceByOwnerAsync(charlieDaoAddress, nft1Id);
+  logJsonResult(`NFT-1 issued to Alice Dao balance`, charlieDaoNft1Balance);
 
 
 
@@ -817,7 +852,7 @@ async function run(api) {
     api.tx.deip.createInvestmentOpportunity(
       /* external_id: */ invstOpp1Id,
       /* creator: */ { Dao: aliceDaoId },
-      /* shares: */ [{ id: nft1Id, amount: { "0": 10000 } }],
+      /* shares: */[{ id: nft1Id, amount: { "0": 10000 } }],
       /* funding_model: */ {
         SimpleCrowdfunding: {
           start_time: Date.now() + invstOpp1StartsInMillisecs,
@@ -835,7 +870,7 @@ async function run(api) {
   await createInvestmentOpportunityByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(createInvestmentOpportunityByAliceDaoTx.toHex());
   const invstOpp = await getInvestmentOpportunityAsync(invstOpp1Id);
-  logSuccess(`InvestmentOpportunity-1 created: \n${JSON.stringify(invstOpp)}\n`);
+  logJsonResult(`InvestmentOpportunity-1 created`, invstOpp);
 
   logInfo(`Waiting for InvestmentOpportunity-1 activation time ...\n`);
   await waitAsync(invstOpp1StartsInMillisecs + 2000);
@@ -878,11 +913,11 @@ async function run(api) {
   logSuccess(`Invested to InvestmentOpportunity-1 by Eve Dao\n`);
 
   const bobDaoNft1Balance = await getAssetBalanceByOwnerAsync(bobDaoAddress, nft1Id);
-  logSuccess(`Invested to InvestmentOpportunity-1, NFT-1 Bob Dao balance: \n${JSON.stringify(bobDaoNft1Balance)}\n`);
+  logJsonResult(`Invested to InvestmentOpportunity-1, NFT-1 Bob Dao balance`, bobDaoNft1Balance);
   const eveDaoNft1Balance = await getAssetBalanceByOwnerAsync(eveDaoAddress, nft1Id);
-  logSuccess(`Invested to InvestmentOpportunity-1, NFT-1 Eve Dao balance: \n${JSON.stringify(eveDaoNft1Balance)}\n`);
+  logJsonResult(`Invested to InvestmentOpportunity-1, NFT-1 Eve Dao balance`, eveDaoNft1Balance);
   const aliceDaoNft1Balance2 = await getAssetBalanceByOwnerAsync(aliceDaoAddress, nft1Id);
-  logSuccess(`NFT-1 Alice Dao balance after finalized InvestmentOpportunity-1: \n${JSON.stringify(aliceDaoNft1Balance2)}\n`);
+  logJsonResult(`NFT-1 Alice Dao balance after finalized InvestmentOpportunity-1`, aliceDaoNft1Balance2);
 
 
 
@@ -914,8 +949,7 @@ async function run(api) {
   await createLicenseAgreement1ByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(createLicenseAgreement1ByAliceDaoTx.toHex());
   const initiatedLicenseAgreement1 = await getContractAgreementAsync(licenseAgreement1Id);
-  logSuccess(`LicenseAgreement-1 between Alice Dao and Charlie Dao parties is initiated: \n${JSON.stringify(initiatedLicenseAgreement1)}\n`);
-
+  logJsonResult(`LicenseAgreement-1 between Alice Dao and Charlie Dao parties is initiated`, initiatedLicenseAgreement1);
 
   logInfo(`Waiting for LicenseAgreement-1 signing period activation time ...\n`);
   await waitAsync(licenseAgreement1SigningActivatesInMillisecs + 2000);
@@ -959,7 +993,7 @@ async function run(api) {
   logSuccess(`Accepted LicenseAgreement-1 by Charlie Dao\n`);
 
   const finalizedLicenseAgreement1 = await getContractAgreementAsync(licenseAgreement1Id);
-  logSuccess(`LicenseAgreement-1 between Alice Dao and Charlie Dao parties is finalized: \n${JSON.stringify(finalizedLicenseAgreement1)}\n`);
+  logJsonResult(`LicenseAgreement-1 between Alice Dao and Charlie Dao parties is finalized`, finalizedLicenseAgreement1);
 
 
 

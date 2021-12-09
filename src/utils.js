@@ -1,50 +1,56 @@
 import config from './config';
-import { u8aToHex, hexToU8a, isU8a, isHex, stringToU8a } from '@polkadot/util';
-import { encodeAddress, decodeAddress, blake2AsU8a, createKeyMulti, randomAsHex } from '@polkadot/util-crypto';
+import { randomAsHex } from '@polkadot/util-crypto';
 import { Keyring } from '@polkadot/api';
+import { SubstrateChainUtils } from '@deip/chain-service';
 
 
-const getFaucetAccount = () => {
+
+const toHexFormat = (id) => {
+  const hexId = id.indexOf(`0x`) === 0 ? id : `0x${id}`;
+  return hexId;
+}
+
+
+const getFaucetSeedAccount = () => {
   const keyring = new Keyring({ type: 'sr25519' });
-  const keyringPair = keyring.createFromJson(config.DEIP_APPCHAIN_FAUCET_ACCOUNT_JSON);
+  const keyringPair = keyring.createFromJson(config.DEIP_APPCHAIN_FAUCET_SUBSTRATE_SEED_ACCOUNT_JSON);
   keyringPair.unlock();
   return keyringPair;
 }
 
 
-const generateAccount = (username, seed = randomAsHex(32)) => {
+const genSeedAccount = (username, seed = randomAsHex(32)) => {
   const keyring = new Keyring({ type: 'sr25519' });
   const keyringPair = keyring.addFromUri(seed, { username });
   return keyringPair;
 }
 
 
-const pubKeyToAddress = (pubKey, addressFormat = 42) => {
-  const address = encodeAddress(isU8a(pubKey) ? u8aToHex(pubKey) : pubKey, addressFormat);
+const substratePubKeyToAddress = (pubKey) => {
+  const address = SubstrateChainUtils.pubKeyToAddress(toHexFormat(pubKey));
   return address;
 }
 
 
-const daoIdToAddress = (daoId, api) => {
-  const H160 = api.registry.createType('H160', daoId);
-  const VecU8 = api.registry.createType('Vec<u8>', H160);
-  const scaleVecU8 = VecU8.toU8a();
-  const prefix = stringToU8a("deip/DAOs/");
-  const hash = blake2AsU8a([...prefix, ...scaleVecU8], 256);
-  const pubKey = api.registry.createType('AccountId', hash);
-  return pubKeyToAddress(pubKey);
+const daoIdToSubstrateAddress = (daoId, api) => {
+  const address = SubstrateChainUtils.daoIdToAddress(toHexFormat(daoId), api.registry);
+  return address;
 }
 
 
-const getMultiAddress = (addresses, threshold) => {
-  const multiAddress = createKeyMulti([...addresses].sort(), threshold);
-  return u8aToHex(multiAddress);
+const getSubstrateMultiAddress = (addresses, threshold) => {
+  const multiAddress = SubstrateChainUtils.getMultiAddress(addresses, threshold);
+  return multiAddress;
 }
 
 
 const getDefaultDomain = () => {
   const defaultDomainId = `0x8e2a3711649993a87848337b9b401dcf64425e2d`;
   return defaultDomainId;
+}
+
+const capitalize = (string) => {
+  return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 const waitAsync = (timeout) => {
@@ -58,12 +64,15 @@ const waitAsync = (timeout) => {
 }
 
 
+
 export {
-  getFaucetAccount,
-  generateAccount,
-  daoIdToAddress,
-  pubKeyToAddress,
-  getMultiAddress,
+  getFaucetSeedAccount,
+  genSeedAccount,
+  daoIdToSubstrateAddress,
+  substratePubKeyToAddress,
+  getSubstrateMultiAddress,
   getDefaultDomain,
+  toHexFormat,
+  capitalize,
   waitAsync
 }

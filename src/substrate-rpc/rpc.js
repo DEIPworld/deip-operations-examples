@@ -1,5 +1,6 @@
 import fetch from 'cross-fetch';
-import config from './config';
+import config from './../config';
+import { toHexFormat } from './../utils';
 
 
 const rpcToChainNodeAsync = (method, params = []) => {
@@ -32,10 +33,6 @@ const rpcToChainNodeAsync = (method, params = []) => {
     });
 }
 
-const toHexFormat = (id) => {
-  const hexId = id.indexOf(`0x`) === 0 ? id : `0x${id}`;
-  return hexId;
-}
 
 const getAccountAsync = async function (id) {
   return rpcToChainNodeAsync("deipDao_get", [null, toHexFormat(id)]);
@@ -77,18 +74,6 @@ const sendTxAsync = (rawTx) => {
 }
 
 
-const sendTxAndWaitAsync = (rawTx, timeout = config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      await sendTxAsync(rawTx);
-      setTimeout(() => resolve(), timeout);
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
-
-
 export {
   getAccountAsync,
   getProjectAsync,
@@ -97,6 +82,5 @@ export {
   getAssetBalanceByOwnerAsync,
   getInvestmentOpportunityAsync,
   getContractAgreementAsync,
-  sendTxAsync,
-  sendTxAndWaitAsync
+  sendTxAsync
 }
