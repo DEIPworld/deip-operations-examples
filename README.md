@@ -10,7 +10,7 @@ It's being improved and updated with new examples accordingly to development pro
 npm install
 ```
 
-## Run Substarte RPC example
+## Run Substrate RPC example
 
 ```
 # run the script with operations sending scenario
