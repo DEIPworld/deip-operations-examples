@@ -6,16 +6,22 @@ It's being improved and updated with new examples accordingly to development pro
 ## Install
 
 ```
-
 # install dependencies (from root)
 npm install
 ```
 
-## Run
+## Run Substarte RPC example
 
 ```
 # run the script with operations sending scenario
-npm run start
+npm run start:substrate-rpc
+```
+
+## Run Casimir example
+
+```
+# run the script with operations sending scenario
+npm run start:casimir
 ```
 
 > See `.config.env` to configure environment variables
