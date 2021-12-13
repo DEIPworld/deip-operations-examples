@@ -2,12 +2,8 @@ import config from './../config';
 import { logInfo, logSuccess, logError, logJsonResult } from './../log';
 import { randomAsHex } from '@polkadot/util-crypto';
 import { genSha256Hash, genRipemd160Hash } from '@deip/toolbox';
-import { PROTOCOL_CHAIN, APP_PROPOSAL, CONTRACT_AGREEMENT_TYPE, RESEARCH_CONTENT_TYPES } from '@deip/constants';
-import { ChainService } from '@deip/chain-service';
-import { u8aToHex } from '@polkadot/util';
+import { APP_PROPOSAL, CONTRACT_AGREEMENT_TYPE, RESEARCH_CONTENT_TYPES } from '@deip/constants';
 import {
-  daoIdToSubstrateAddress,
-  getFaucetSeedAccount,
   waitAsync,
   getDefaultDomain
 } from './../utils';
@@ -35,142 +31,26 @@ import {
   RemoveDaoMemberCmd
 } from '@deip/command-models';
 
+import PRE_SET from './preset';
+
+const { 
+  setupTenantPortal,
+  getChainService,
+  getDaoCreator,
+  getDaoCreatorPrivKey,
+  fundAddressFromFaucet,
+  sendTxAndWaitAsync,
+  DAO_SEED_FUNDING_AMOUNT,
+  DAO_FUNDING_AMOUNT
+} = PRE_SET(config);
 
 
-async function getChainService() {
-  const chainService = await ChainService.getInstanceAsync({
-    PROTOCOL: config.DEIP_PROTOCOL_CHAIN,
-    DEIP_FULL_NODE_URL: config.DEIP_APPCHAIN_NODE_URL,
-    CORE_ASSET: config.DEIP_APPCHAIN_CORE_ASSET,
-    CHAIN_ID: config.DEIP_CHAIN_ID
-  });
-  return chainService;
-}
 
-
-async function setup() {
-  const chainService = await getChainService();
-  const { username: faucetDaoId } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
-  const rpc = chainService.getChainRpc();
-  const faucetDao = await rpc.getAccountAsync(faucetDaoId);
-  if (!faucetDao)
-    await createFaucetDao();
-
-  return chainService;
-}
-
-
-async function sendTxAndWaitAsync(finalizedTx, timeout = config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK) {
-  const chainService = await getChainService();
-  const rpc = chainService.getChainRpc();
-  const api = chainService.getChainNodeClient();
-  if (config.DEIP_TARGET_PORTAL) {
-    const { tx } = finalizedTx.getPayload();
-    await tx.signByTenantAsync({ tenant: config.DEIP_TARGET_PORTAL.id, tenantPrivKey: config.DEIP_TARGET_PORTAL.privKey }, api);
-  }
-  await finalizedTx.sendAsync(rpc);
-  await waitAsync(timeout);
-}
-
-async function createFaucetDao() {
+async function run() {
   const chainService = await getChainService();
   const chainTxBuilder = chainService.getChainTxBuilder();
   const api = chainService.getChainNodeClient();
   const rpc = chainService.getChainRpc();
-  const {
-    username: faucetDaoId,
-    wif: faucetSeed,
-  } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
-
-  const owner = { auths: [], weight: 1 };
-  
-  if (PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN) {
-    const seedPubKey = u8aToHex(getFaucetSeedAccount(config.DEIP_APPCHAIN_FAUCET_SUBSTRATE_SEED_ACCOUNT_JSON).publicKey).substring(2);
-    owner.auths.push({ key: seedPubKey })
-  } else {
-    owner.auths.push({ name: faucetDaoId })
-  }
-
-  const createFaucetDaoTx = await chainTxBuilder.begin()
-    .then((txBuilder) => {
-      const createDaoCmd = new CreateDaoCmd({
-        entityId: faucetDaoId,
-        authority: { owner },
-        creator: "faucet",
-        memoKey: "faucet",
-        description: genSha256Hash({ "description": "Faucet DAO" }),
-        // offchain
-        isTeamAccount: false,
-        attributes: []
-      });
-      txBuilder.addCmd(createDaoCmd);
-      return txBuilder.end();
-    });
-
-  const createFaucetDaoTxSigned = await createFaucetDaoTx.signAsync(faucetSeed, api);
-  await sendTxAndWaitAsync(createFaucetDaoTxSigned);
-  const faucetDao = await rpc.getAccountAsync(faucetDaoId);
-  logJsonResult(`Faucet DAO created`, faucetDao);
-
-
-  if (PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN) {
-    const faucetDaoAddress = daoIdToSubstrateAddress(faucetDaoId, api);
-    const faucetDaoFundingAmount = "100000000000000000000"; // 100 MUNIT
-    const tx = api.tx.balances.transfer(faucetDaoAddress, faucetDaoFundingAmount);
-    await tx.signAsync(getFaucetSeedAccount(config.DEIP_APPCHAIN_FAUCET_SUBSTRATE_SEED_ACCOUNT_JSON));
-    await api.rpc.author.submitExtrinsic(tx.toHex());
-    await waitAsync(config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK);
-  }
-}
-
-function getDaoCreator(seed) {
-  const { username: faucetDaoId } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
-  if (PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN) {
-    return seed.getUsername();
-  }
-  return faucetDaoId;
-}
-
-function getDaoCreatorPrivKey(seed) {
-  const { wif: faucetSeed } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
-  if (PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN) {
-    return seed.getPrivKey();
-  }
-  return faucetSeed;
-}
-
-async function fundAddressFromFaucet(daoIdOrAddress, amount) {
-  if (!amount) return;
-
-  const chainService = await getChainService();
-  const chainTxBuilder = chainService.getChainTxBuilder();
-  const api = chainService.getChainNodeClient();
-  const { username: faucetDaoId, wif: faucetSeed } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
-
-  const fundDaoTx = await chainTxBuilder.begin()
-    .then((txBuilder) => {
-      const transferAssetCmd = new TransferAssetCmd({
-        from: faucetDaoId,
-        to: daoIdOrAddress,
-        asset: { ...config.DEIP_APPCHAIN_CORE_ASSET, amount }
-      });
-
-      txBuilder.addCmd(transferAssetCmd);
-      return txBuilder.end();
-    });
-
-  const fundDaoTxSigned = await fundDaoTx.signAsync(faucetSeed, api);
-  await sendTxAndWaitAsync(fundDaoTxSigned);
-}
-
-
-async function run(chainService) {
-  const chainTxBuilder = chainService.getChainTxBuilder();
-  const api = chainService.getChainNodeClient();
-  const rpc = chainService.getChainRpc();
-  const daoSeedFundingAmount = PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN ? "2000000000000000000" /* 2 MUNIT */ : 0
-  const daoFundingAmount = PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN ? "1000000000000000000" /* 1 MUNIT */ : 10000
-
 
 
   /**
@@ -178,7 +58,7 @@ async function run(chainService) {
    */
   logInfo(`Creating Alice DAO ...`);
   const alice = await chainService.generateChainSeedAccount({ username: "alice", password: randomAsHex(32) });
-  await fundAddressFromFaucet(alice.getPubKey(), daoSeedFundingAmount, true);
+  await fundAddressFromFaucet(alice.getPubKey(), DAO_SEED_FUNDING_AMOUNT, true);
   const aliceDaoId = genRipemd160Hash(randomAsHex(20));
   const createAliceDaoTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
@@ -191,7 +71,6 @@ async function run(chainService) {
           }
         },
         creator: getDaoCreator(alice),
-        memoKey: "none",
         description: genSha256Hash({ "description": "Alice DAO" }),
         // offchain
         isTeamAccount: false,
@@ -204,7 +83,7 @@ async function run(chainService) {
   const createAliceDaoByAliceTx = await createAliceDaoTx.signAsync(getDaoCreatorPrivKey(alice), api); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(createAliceDaoByAliceTx);
 
-  await fundAddressFromFaucet(aliceDaoId, daoFundingAmount);
+  await fundAddressFromFaucet(aliceDaoId, DAO_FUNDING_AMOUNT);
   const aliceDao = await rpc.getAccountAsync(aliceDaoId);
   logJsonResult(`Alice DAO created`, aliceDao);
 
@@ -215,7 +94,7 @@ async function run(chainService) {
    */
   logInfo(`Creating Bob DAO ...`);
   const bob = await chainService.generateChainSeedAccount({ username: "bob", password: randomAsHex(32) });
-  await fundAddressFromFaucet(bob.getPubKey(), daoSeedFundingAmount);
+  await fundAddressFromFaucet(bob.getPubKey(), DAO_SEED_FUNDING_AMOUNT);
   const bobDaoId = genRipemd160Hash(randomAsHex(20));
   const createBobDaoTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
@@ -228,7 +107,6 @@ async function run(chainService) {
           }
         },
         creator: getDaoCreator(bob),
-        memoKey: "none",
         description: genSha256Hash({ "description": "Bob DAO" }),
         // offchain
         isTeamAccount: false,
@@ -241,7 +119,7 @@ async function run(chainService) {
   const createBobDaoByBobTx = await createBobDaoTx.signAsync(getDaoCreatorPrivKey(bob), api); // 1st approval from Bob DAO (final)
   await sendTxAndWaitAsync(createBobDaoByBobTx);
 
-  await fundAddressFromFaucet(bobDaoId, daoFundingAmount);
+  await fundAddressFromFaucet(bobDaoId, DAO_FUNDING_AMOUNT);
   const bobDao = await rpc.getAccountAsync(bobDaoId);
   logJsonResult(`Bob DAO created`, bobDao);
 
@@ -252,7 +130,7 @@ async function run(chainService) {
    */
   logInfo(`Creating Charlie DAO ...`);
   const charlie = await chainService.generateChainSeedAccount({ username: "charlie", password: randomAsHex(32) });
-  await fundAddressFromFaucet(charlie.getPubKey(), daoSeedFundingAmount);
+  await fundAddressFromFaucet(charlie.getPubKey(), DAO_SEED_FUNDING_AMOUNT);
   const charlieDaoId = genRipemd160Hash(randomAsHex(20));
   const createCharlieDaoTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
@@ -265,7 +143,6 @@ async function run(chainService) {
           }
         },
         creator: getDaoCreator(charlie),
-        memoKey: "none",
         description: genSha256Hash({ "description": "Charlie DAO" }),
         // offchain
         isTeamAccount: false,
@@ -278,7 +155,7 @@ async function run(chainService) {
   const createCharlieDaoByCharlieTx = await createCharlieDaoTx.signAsync(getDaoCreatorPrivKey(charlie), api); // 1st approval from Charlie DAO (final)
   await sendTxAndWaitAsync(createCharlieDaoByCharlieTx);
 
-  await fundAddressFromFaucet(charlieDaoId, daoFundingAmount);
+  await fundAddressFromFaucet(charlieDaoId, DAO_FUNDING_AMOUNT);
   const charlieDao = await rpc.getAccountAsync(charlieDaoId);
   logJsonResult(`Charlie DAO created`, charlieDao);
 
@@ -289,7 +166,7 @@ async function run(chainService) {
    */
   logInfo(`Creating Dave DAO ...`);
   const dave = await chainService.generateChainSeedAccount({ username: "dave", password: randomAsHex(32) });
-  await fundAddressFromFaucet(dave.getPubKey(), daoSeedFundingAmount);
+  await fundAddressFromFaucet(dave.getPubKey(), DAO_SEED_FUNDING_AMOUNT);
   const daveDaoId = genRipemd160Hash(randomAsHex(20));
   const createDaveDaoTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
@@ -302,7 +179,6 @@ async function run(chainService) {
           }
         },
         creator: getDaoCreator(dave),
-        memoKey: "none",
         description: genSha256Hash({ "description": "Dave DAO" }),
         // offchain
         isTeamAccount: false,
@@ -315,7 +191,7 @@ async function run(chainService) {
   const createDaveDaoByDaveTx = await createDaveDaoTx.signAsync(getDaoCreatorPrivKey(dave), api); // 1st approval from Dave DAO (final)
   await sendTxAndWaitAsync(createDaveDaoByDaveTx);
 
-  await fundAddressFromFaucet(daveDaoId, daoFundingAmount);
+  await fundAddressFromFaucet(daveDaoId, DAO_FUNDING_AMOUNT);
   const daveDao = await rpc.getAccountAsync(daveDaoId);
   logJsonResult(`Dave DAO created`, daveDao);
 
@@ -326,7 +202,7 @@ async function run(chainService) {
    */
   logInfo(`Creating Eve DAO ...`);
   const eveTemp = await chainService.generateChainSeedAccount({ username: "eve", password: randomAsHex(32) });
-  await fundAddressFromFaucet(eveTemp.getPubKey(), daoSeedFundingAmount);
+  await fundAddressFromFaucet(eveTemp.getPubKey(), DAO_SEED_FUNDING_AMOUNT);
   const eveDaoId = genRipemd160Hash(randomAsHex(20));
   const createEveDaoTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
@@ -339,7 +215,6 @@ async function run(chainService) {
           }
         },
         creator: getDaoCreator(eveTemp),
-        memoKey: "none",
         description: genSha256Hash({ "description": "Eve DAO" }),
         // offchain
         isTeamAccount: false,
@@ -352,7 +227,7 @@ async function run(chainService) {
   const createEveDaoByEveTx = await createEveDaoTx.signAsync(getDaoCreatorPrivKey(eveTemp), api); // 1st approval from Eve DAO (final)
   await sendTxAndWaitAsync(createEveDaoByEveTx);
 
-  await fundAddressFromFaucet(eveDaoId, daoFundingAmount);
+  await fundAddressFromFaucet(eveDaoId, DAO_FUNDING_AMOUNT);
   const eveDao = await rpc.getAccountAsync(eveDaoId);
   logJsonResult(`Eve DAO created`, eveDao);
 
@@ -363,7 +238,7 @@ async function run(chainService) {
    */
   logInfo(`Update Eve DAO authority ...`);
   const eve = await chainService.generateChainSeedAccount({ username: "eve", password: randomAsHex(32) });
-  await fundAddressFromFaucet(eve.getPubKey(), daoSeedFundingAmount);
+  await fundAddressFromFaucet(eve.getPubKey(), DAO_SEED_FUNDING_AMOUNT);
   const updateAliceDaoAuthTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
       const alterDaoAuthorityCmd = new AlterDaoAuthorityCmd({
@@ -402,7 +277,6 @@ async function run(chainService) {
           }
         },
         creator: aliceDaoId,
-        memoKey: "none",
         description: genSha256Hash({ "description": "Alice-Bob multisig DAO" }),
         // offchain
         isTeamAccount: true,
@@ -415,7 +289,7 @@ async function run(chainService) {
   const createAliceBobDaoByAliceDaoTx = await createAliceBobDaoTx.signAsync(alice.getPrivKey(), api); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(createAliceBobDaoByAliceDaoTx);
 
-  await fundAddressFromFaucet(aliceBobDaoId, daoFundingAmount);
+  await fundAddressFromFaucet(aliceBobDaoId, DAO_FUNDING_AMOUNT);
   const aliceBobDao = await rpc.getAccountAsync(aliceBobDaoId);
   logJsonResult(`Alice-Bob multisig DAO created`, aliceBobDao);
 
@@ -483,7 +357,6 @@ async function run(chainService) {
           }
         },
         creator: eveDaoId,
-        memoKey: "none",
         description: genSha256Hash({ "description": "Eve-Charlie multisig DAO" }),
         // offchain
         isTeamAccount: true,
@@ -496,7 +369,7 @@ async function run(chainService) {
   const createEveCharlieDaoByEveDaoTx = await createEveCharlieDaoTx.signAsync(eve.getPrivKey(), api); // 1st approval from Eve DAO (final)
   await sendTxAndWaitAsync(createEveCharlieDaoByEveDaoTx);
 
-  await fundAddressFromFaucet(eveCharlieDaoId, daoFundingAmount);
+  await fundAddressFromFaucet(eveCharlieDaoId, DAO_FUNDING_AMOUNT);
   const eveCharlieDao = await rpc.getAccountAsync(eveCharlieDaoId);
   logJsonResult(`Eve-Charlie multisig DAO created`, eveCharlieDao);
 
@@ -518,7 +391,6 @@ async function run(chainService) {
           }
         },
         creator: bobDaoId,
-        memoKey: "none",
         description: genSha256Hash({ "description": "Bob-Dave multisig DAO" }),
         // offchain
         isTeamAccount: true,
@@ -534,7 +406,7 @@ async function run(chainService) {
   const createBobDaveDaoByDaveDaoTx = await createBobDaveDaoDaoTx.signAsync(dave.getPrivKey(), api, { override: true }); // 2nd approval from Dave DAO (final)
   await sendTxAndWaitAsync(createBobDaveDaoByDaveDaoTx);
 
-  await fundAddressFromFaucet(bobDaveDaoId, daoFundingAmount);
+  await fundAddressFromFaucet(bobDaveDaoId, DAO_FUNDING_AMOUNT);
   const bobDaveDao = await rpc.getAccountAsync(bobDaveDaoId);
   logJsonResult(`Bob-Dave multisig DAO created`, bobDaveDao);
 
@@ -556,7 +428,6 @@ async function run(chainService) {
           }
         },
         creator: eveDaoId,
-        memoKey: "none",
         description: genSha256Hash({ "description": "Multigroup-1 multisig DAO" }),
         // offchain
         isTeamAccount: true,
@@ -570,7 +441,7 @@ async function run(chainService) {
   const createMultigroup1DaoByEveCharlieDaoByEveDaoTx = await createMultigroup1Tx.signAsync(eve.getPrivKey(), api);  // 1st approval from Eve DAO on behalf Eve-Charlie DAO (final)
   await sendTxAndWaitAsync(createMultigroup1DaoByEveCharlieDaoByEveDaoTx);
 
-  await fundAddressFromFaucet(multigroup1DaoId, daoFundingAmount);
+  await fundAddressFromFaucet(multigroup1DaoId, DAO_FUNDING_AMOUNT);
   const multigroup1Dao = await rpc.getAccountAsync(multigroup1DaoId);
   logJsonResult(`Multigroup-1 (Eve-Charlie, Bob-Dave) multisig DAO created`, multigroup1Dao);
 
@@ -592,7 +463,6 @@ async function run(chainService) {
           }
         },
         creator: eveDaoId,
-        memoKey: "none",
         description: genSha256Hash({ "description": "Multigroup-2 multisig DAO" }),
         // offchain
         isTeamAccount: true,
@@ -612,7 +482,7 @@ async function run(chainService) {
   const createMultigroup2DaoByBobDaveDaoByDaveDaoTx = await createMultigroup2Tx.signAsync(dave.getPrivKey(), api, { override: true }); // 3rd approval from Dave DAO on behalf Bob-Dave DAO (final)
   await sendTxAndWaitAsync(createMultigroup2DaoByBobDaveDaoByDaveDaoTx);
 
-  await fundAddressFromFaucet(multigroup2DaoId, daoFundingAmount);
+  await fundAddressFromFaucet(multigroup2DaoId, DAO_FUNDING_AMOUNT);
   const multigroup2Dao = await rpc.getAccountAsync(multigroup2DaoId);
   logJsonResult(`Multigroup-2 (Eve-Charlie, Bob-Dave) multisig DAO created`, multigroup2Dao);
 
@@ -623,7 +493,7 @@ async function run(chainService) {
    */
   logInfo(`Creating Treasury DAO ...`);
   const treasury = await chainService.generateChainSeedAccount({ username: "treasury", password: randomAsHex(32) });
-  await fundAddressFromFaucet(treasury.getPubKey(), daoSeedFundingAmount);
+  await fundAddressFromFaucet(treasury.getPubKey(), DAO_SEED_FUNDING_AMOUNT);
   const treasuryDaoId = genRipemd160Hash(randomAsHex(20));
   const createTreasuryDaoTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
@@ -636,7 +506,6 @@ async function run(chainService) {
           }
         },
         creator: getDaoCreator(treasury),
-        memoKey: "none",
         description: genSha256Hash({ "description": "Treasury DAO" }),
         // offchain
         isTeamAccount: true,
@@ -649,7 +518,7 @@ async function run(chainService) {
   const createTreasuryDaoByEveTx = await createTreasuryDaoTx.signAsync(getDaoCreatorPrivKey(treasury), api);
   await sendTxAndWaitAsync(createTreasuryDaoByEveTx);
 
-  await fundAddressFromFaucet(treasuryDaoId, daoFundingAmount);
+  await fundAddressFromFaucet(treasuryDaoId, DAO_FUNDING_AMOUNT);
   const treasuryDao = await rpc.getAccountAsync(treasuryDaoId);
   logJsonResult(`Treasury DAO created`, treasuryDao);
 
@@ -1281,10 +1150,10 @@ async function run(chainService) {
 }
 
 
-setup()
-  .then((chainService) => {
+setupTenantPortal()
+  .then(() => {
     logInfo('\nRunning Casimir tx-builder...\n');
-    return run(chainService);
+    return run();
   })
   .then(() => {
     logInfo('Successfully finished !');
