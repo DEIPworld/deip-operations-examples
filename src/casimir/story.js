@@ -303,7 +303,8 @@ async function run() {
     .then((txBuilder) => {
       const addDaoMemberCmd = new AddDaoMemberCmd({
         teamId: aliceBobDaoId,
-        member: eveDaoId
+        member: eveDaoId,
+        isThresholdPreserved: true
       });
 
       txBuilder.addCmd(addDaoMemberCmd);
@@ -324,7 +325,8 @@ async function run() {
     .then((txBuilder) => {
       const removeDaoMemberCmd = new RemoveDaoMemberCmd({
         teamId: aliceBobDaoId,
-        member: eveDaoId
+        member: eveDaoId,
+        isThresholdPreserved: true
       });
 
       txBuilder.addCmd(removeDaoMemberCmd);
@@ -334,8 +336,6 @@ async function run() {
   const removeEveDaoFromAliceBobDaoByAliceDaoTx = await removeEveDaoFromAliceBobDaoTx.signAsync(alice.getPrivKey(), api); // 1st approval from Alice DAO
   await sendTxAndWaitAsync(removeEveDaoFromAliceBobDaoByAliceDaoTx);
   
-  const removeEveDaoFromAliceBobDaoByBobDaoTx = await removeEveDaoFromAliceBobDaoTx.signAsync(bob.getPrivKey(), api, { override: true }); // 2nd approval from Bob DAO (final)
-  await sendTxAndWaitAsync(removeEveDaoFromAliceBobDaoByBobDaoTx);
   const aliceBobDaoWithoutEveDao = await rpc.getAccountAsync(aliceBobDaoId);
   logJsonResult(`Eve DAO removed from Alice-Bob multisig DAO`, aliceBobDaoWithoutEveDao);
 
@@ -610,6 +610,7 @@ async function run() {
         teamId: aliceDaoId,
         type: RESEARCH_CONTENT_TYPES.MILESTONE_CHAPTER,
         description: genSha256Hash({ "description": "Meta for Content-1 of Project-1" }),
+        contentType: 1,
         content: genSha256Hash({ "description": "Data of Content-1 of Project-1" }),
         authors: [aliceDaoId],
         references: []
@@ -632,11 +633,13 @@ async function run() {
   const review1Project1Content1Id = genRipemd160Hash(randomAsHex(20));
   const createReview1Project1Content1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
+      const content = { "description": "Review-1 of Content-1 of Project-1" };
       const createReviewCmd = new CreateReviewCmd({
         entityId: review1Project1Content1Id,
         author: bobDaoId,
         projectContentId: project1Content1Id,
-        content: genSha256Hash({ "description": "Review-1 of Content-1 of Project-1" }),
+        content: content,
+        contentHash: genSha256Hash(content),
         assessment: { type: 1, scores: { '1': 5, '3': 4, '6': 5 } },
         domains: [defaultDomainId]
       });
@@ -685,7 +688,7 @@ async function run() {
         description: genSha256Hash({ "description": "Multigroup-2 DAO Project" }),
         teamId: multigroup2DaoId,
         isPrivate: false,
-        domains: [defaultDomainId]
+        domains: []
       });
       txBuilder.addCmd(createProjectCmd);
       return txBuilder.end();
@@ -722,7 +725,7 @@ async function run() {
         entityId: project3Id,
         teamId: aliceBobDaoId,
         description: genSha256Hash({ "description": "Alice-Bob DAO Project" }),
-        domains: [defaultDomainId],
+        domains: [],
         isPrivate: false
       });
 
@@ -730,7 +733,7 @@ async function run() {
         entityId: project4Id,
         teamId: bobDaveDaoId,
         description: genSha256Hash({ "description": "Bob-Dave DAO Project" }),
-        domains: [defaultDomainId],
+        domains: [],
         isPrivate: false
       });
 

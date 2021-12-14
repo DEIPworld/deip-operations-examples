@@ -186,7 +186,8 @@ export default (config) => {
           .then((txBuilder) => {
             const addDaoMemberCmd = new AddDaoMemberCmd({
               teamId: tenantDaoId,
-              member: tenantMemberDaoId
+              member: tenantMemberDaoId,
+              isThresholdPreserved: true
             });
 
             txBuilder.addCmd(addDaoMemberCmd);
@@ -194,39 +195,6 @@ export default (config) => {
           });
         const addTenantMemberDaoToTenantDaoByTenantDaoTx = await addTenantMemberDaoToTenantDaoTx.signAsync(tenantSeed.getPrivKey(), api);
         await sendTxAndWaitAsync(addTenantMemberDaoToTenantDaoByTenantDaoTx);
-
-        // Until threshold is automatically incremented we have to reset it manually
-        const resetTenantDaoAuthTx = await chainTxBuilder.begin()
-          .then((txBuilder) => {
-            const alterDaoAuthorityCmd = new AlterDaoAuthorityCmd({
-              entityId: tenantDaoId,
-              authority: {
-                owner: {
-                  auths: [
-                    ...tenantDao.authority.owner.auths.map((
-                      auth) => {
-                      return auth.daoId
-                        ? { name: auth.daoId, weight: auth.weight }
-                        : { key: auth.pubKey, weight: auth.weight }
-                    }),
-                    { name: tenantMemberDaoId, weight: 1 }
-                  ],
-                  weight: 1
-                }
-              }
-            });
-
-            txBuilder.addCmd(alterDaoAuthorityCmd);
-            return txBuilder.end();
-          });
-        const resetTenantDaoAuthByTenantSeedTx = await resetTenantDaoAuthTx.signAsync(tenantSeed.getPrivKey(), api);
-        await sendTxAndWaitAsync(resetTenantDaoAuthByTenantSeedTx);
-
-        const resetTenantDaoAuthByTenantMemberTx = await resetTenantDaoAuthTx.signAsync(tenantMember.getPrivKey(), api, { override: true });
-        await sendTxAndWaitAsync(resetTenantDaoAuthByTenantMemberTx);
-
-        const tenantDaoWithAddedMember = await rpc.getAccountAsync(tenantDaoId);
-        logJsonResult(`Tenant Member DAO ${tenantMemberDaoId} added to Tenant DAO ${tenantDaoId}`, tenantDaoWithAddedMember);
       }
 
     }
