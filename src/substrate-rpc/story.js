@@ -658,7 +658,7 @@ async function run(api) {
   logInfo(`Creating a Stabelcoin-1 ...`);
   const stablecoin1Id = randomAsHex(20);
   const createStablecoin1ByTreasuryDaoOp = api.tx.deipDao.onBehalf(treasuryDaoId,
-    api.tx.deipAssets.createAsset(
+    api.tx.assets.deipCreateAsset(
       /* assetId: */ stablecoin1Id,
       /* admin: */ { Dao: treasuryDaoId },
       /* min_balance: */ 1,
@@ -666,7 +666,7 @@ async function run(api) {
     )
   );
   const setStablecoin1MetaByTreasuryDaoOp = api.tx.deipDao.onBehalf(treasuryDaoId,
-    api.tx.deipAssets.setMetadata(
+    api.tx.assets.deipSetMetadata(
       /* assetId: */ stablecoin1Id,
       /* name */ "Stabelcoin for USD",
       /* symbol */ "USDD",
@@ -674,7 +674,7 @@ async function run(api) {
     )
   );
   const setStablecoin1TeamByTreasuryDaoOp = api.tx.deipDao.onBehalf(treasuryDaoId,
-    api.tx.deipAssets.setTeam(
+    api.tx.assets.deipSetTeam(
       /* assetId: */ stablecoin1Id,
       /* issuer */ { Dao: treasuryDaoId },
       /* admin */ { Dao: treasuryDaoId },
@@ -699,7 +699,7 @@ async function run(api) {
    */
   logInfo(`Issuing Stabelcoin-1 to Bob Dao ...`);
   const issueStablecoin1ToBobDaoByTreasuryDaoOp = api.tx.deipDao.onBehalf(treasuryDaoId,
-    api.tx.deipAssets.issueAsset(
+    api.tx.assets.deipIssueAsset(
       /* assetId: */ stablecoin1Id,
       /* beneficiary */ { Dao: bobDaoId },
       /* amount */ 10000
@@ -720,7 +720,7 @@ async function run(api) {
    */
   logInfo(`Issuing Stabelcoin-1 to Eve Dao ...`);
   const issueStablecoin1ToEveDaoByTreasuryDaoOp = api.tx.deipDao.onBehalf(treasuryDaoId,
-    api.tx.deipAssets.issueAsset(
+    api.tx.assets.deipIssueAsset(
       /* assetId: */ stablecoin1Id,
       /* beneficiary */ { Dao: eveDaoId },
       /* amount */ 5000
@@ -740,7 +740,7 @@ async function run(api) {
    */
   logInfo(`Issuing Stabelcoin-1 to Charlie Dao ...`);
   const issueStablecoin1ToCharlieDaoByTreasuryDaoOp = api.tx.deipDao.onBehalf(treasuryDaoId,
-    api.tx.deipAssets.issueAsset(
+    api.tx.assets.deipIssueAsset(
       /* assetId: */ stablecoin1Id,
       /* beneficiary */ { Dao: charlieDaoId },
       /* amount */ 3000
@@ -762,7 +762,7 @@ async function run(api) {
   logInfo(`Creating NFT-1 ...`);
   const nft1Id = randomAsHex(20);
   const createNft1ByAliceDaoOp = api.tx.deipDao.onBehalf(aliceDaoId,
-    api.tx.deipAssets.createAsset(
+    api.tx.assets.deipCreateAsset(
       /* assetId: */ nft1Id,
       /* admin: */ { Dao: aliceDaoId },
       /* min_balance: */ 1,
@@ -771,7 +771,7 @@ async function run(api) {
   );
 
   const setNft1MetaByAliceDaoOp = api.tx.deipDao.onBehalf(aliceDaoId,
-    api.tx.deipAssets.setMetadata(
+    api.tx.assets.deipSetMetadata(
       /* assetId: */ nft1Id,
       /* name */ "Non-Fungible Token of Project-1",
       /* symbol */ "NFT1",
@@ -780,7 +780,7 @@ async function run(api) {
   );
 
   const setNft1TeamByAliceDaoOp = api.tx.deipDao.onBehalf(aliceDaoId,
-    api.tx.deipAssets.setTeam(
+    api.tx.assets.deipSetTeam(
       /* assetId: */ nft1Id,
       /* issuer */ { Dao: aliceDaoId },
       /* admin */ { Dao: aliceDaoId },
@@ -805,7 +805,7 @@ async function run(api) {
    */
   logInfo(`Issuing NFT-1 to Alice Dao ...`);
   const issueNft1ToAliceDaoByAliceDaoOp = api.tx.deipDao.onBehalf(aliceDaoId,
-    api.tx.deipAssets.issueAsset(
+    api.tx.assets.deipIssueAsset(
       /* assetId: */ nft1Id,
       /* beneficiary */ { Dao: aliceDaoId },
       /* amount */ 15000
@@ -826,7 +826,7 @@ async function run(api) {
    */
   logInfo(`Transferring some NFT-1 to Charlie Dao ...`);
   const transferNft1ToCharlieDaoByAliceDaoOp = api.tx.deipDao.onBehalf(aliceDaoId,
-    api.tx.deipAssets.transfer(
+    api.tx.assets.deipTransfer(
       /* assetId: */ nft1Id,
       /* to: */ { Dao: charlieDaoId },
       /* amount: */ 1000

@@ -380,7 +380,7 @@ async function run() {
    */
   logInfo(`Creating Bob-Dave multisig DAO ...`);
   const bobDaveDaoId = genRipemd160Hash(randomAsHex(20));
-  const createBobDaveDaoDaoTx = await chainTxBuilder.begin()
+  const createBobDaveDaoDaoTx = await chainTxBuilder.begin({ ignorePortalSig: false })
     .then((txBuilder) => {
       const createDaoCmd = new CreateDaoCmd({
         entityId: bobDaveDaoId,

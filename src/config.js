@@ -12,7 +12,8 @@ const config = {
   DEIP_APPCHAIN_CORE_ASSET: process.env.DEIP_APPCHAIN_CORE_ASSET ? JSON.parse(process.env.DEIP_APPCHAIN_CORE_ASSET) : null,
   DEIP_APPCHAIN_FAUCET_ASSETS: process.env.DEIP_APPCHAIN_FAUCET_ASSETS ? JSON.parse(process.env.DEIP_APPCHAIN_FAUCET_ASSETS) : [],
   DEIP_CHAIN_ID: process.env.DEIP_CHAIN_ID,
-  DEIP_PORTAL_TENANT: process.env.DEIP_PORTAL_TENANT ? JSON.parse(process.env.DEIP_PORTAL_TENANT) : null
+  DEIP_PORTAL_TENANT: process.env.DEIP_PORTAL_TENANT ? JSON.parse(process.env.DEIP_PORTAL_TENANT) : null,
+  DEIP_PORTAL_VERIFIER: process.env.DEIP_PORTAL_VERIFIER ? JSON.parse(process.env.DEIP_PORTAL_VERIFIER) : null,
 };
 
 module.exports = config;

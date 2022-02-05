@@ -10,7 +10,7 @@ import {
 } from './../utils';
 import {
   CreateDaoCmd,
-  AlterDaoAuthorityCmd,
+  CreatePortalCmd,
   CreateAssetCmd,
   IssueAssetCmd,
   TransferAssetCmd,
@@ -40,7 +40,8 @@ export default (config) => {
       PROTOCOL: config.DEIP_PROTOCOL_CHAIN,
       DEIP_FULL_NODE_URL: config.DEIP_APPCHAIN_NODE_URL,
       CORE_ASSET: config.DEIP_APPCHAIN_CORE_ASSET,
-      CHAIN_ID: config.DEIP_CHAIN_ID
+      CHAIN_ID: config.DEIP_CHAIN_ID,
+      TENANT: config.DEIP_PORTAL_TENANT.id
     });
     return chainService;
   }
@@ -66,7 +67,7 @@ export default (config) => {
     }
 
     logInfo(`Creating Faucet DAO ...`);
-    const createFaucetDaoTx = await chainTxBuilder.begin()
+    const createFaucetDaoTx = await chainTxBuilder.begin({ ignorePortalSig: true })
       .then((txBuilder) => {
         const createDaoCmd = new CreateDaoCmd({
           entityId: faucetDaoId,
@@ -105,13 +106,14 @@ export default (config) => {
     const api = chainService.getChainNodeClient();
     const rpc = chainService.getChainRpc();
     const { id: tenantDaoId, privKey: tenantPrivKey, members } = config.DEIP_PORTAL_TENANT;
+    const { address: portalVerifier } = config.DEIP_PORTAL_VERIFIER;
     const tenantSeed = await chainService.generateChainSeedAccount({ username: tenantDaoId, privateKey: tenantPrivKey });
 
     const existingTenantDao = await rpc.getAccountAsync(tenantDaoId);
     if (!existingTenantDao) {
       logInfo(`Creating Tenant DAO ...`);
       await fundAddressFromFaucet(tenantSeed.getPubKey(), DAO_SEED_FUNDING_AMOUNT);
-      const createTenantDaoTx = await chainTxBuilder.begin()
+      const createTenantDaoTx = await chainTxBuilder.begin({ ignorePortalSig: true })
         .then((txBuilder) => {
           const createDaoCmd = new CreateDaoCmd({
             entityId: tenantDaoId,
@@ -126,8 +128,7 @@ export default (config) => {
             // offchain
             isTeamAccount: true,
             attributes: []
-          });
-
+          })
           txBuilder.addCmd(createDaoCmd);
           return txBuilder.end();
         });
@@ -138,6 +139,29 @@ export default (config) => {
 
       const createdTenantDao = await rpc.getAccountAsync(tenantDaoId);
       logJsonResult(`Tenant DAO created`, createdTenantDao);
+
+      logInfo(`Creating Portal ...`);
+      const createTenantPortalTx = await chainTxBuilder.begin({ ignorePortalSig: true })
+        .then((txBuilder) => {
+          const createPortalCmd = new CreatePortalCmd({
+            owner: tenantDaoId,
+            delegate: portalVerifier,
+            metadata: genSha256Hash({ "description": "DAO delegate" })
+          })
+          txBuilder.addCmd(createPortalCmd);
+          return txBuilder.end();
+        });
+
+      const createTenantPortalByTenantTx = await createTenantPortalTx.signAsync(getDaoCreatorPrivKey(tenantSeed), api);
+      await sendTxAndWaitAsync(createTenantPortalByTenantTx);
+
+      const portal = await api.query.deipPortal.portalRepository(`0x${tenantDaoId}`);
+      logJsonResult(`Portal created`, portal);
+
+      logInfo(`Funding Portal ...`);
+      await fundAddressFromFaucet(portalVerifier, DAO_SEED_FUNDING_AMOUNT);
+      logInfo(`End funding Portal`);
+
     }
 
     const tenantDao = await rpc.getAccountAsync(tenantDaoId);
@@ -150,7 +174,7 @@ export default (config) => {
       if (!existingTenantMemberDao) {
         logInfo(`Creating Tenant Member DAO ...`);
         await fundAddressFromFaucet(tenantMember.getPubKey(), DAO_SEED_FUNDING_AMOUNT);
-        const createTenantMemberDaoTx = await chainTxBuilder.begin()
+        const createTenantMemberDaoTx = await chainTxBuilder.begin({ ignorePortalSig: true })
           .then((txBuilder) => {
             const createDaoCmd = new CreateDaoCmd({
               entityId: tenantMemberDaoId,
@@ -182,7 +206,7 @@ export default (config) => {
       const isMember = tenantDao.authority.owner.auths.some((auth) => auth.daoId == tenantMemberDaoId);
       if (!isMember) {
         logInfo(`Adding Tenant Member DAO ${tenantMemberDaoId} to Tenant DAO ${tenantDaoId} ...`);
-        const addTenantMemberDaoToTenantDaoTx = await chainTxBuilder.begin()
+        const addTenantMemberDaoToTenantDaoTx = await chainTxBuilder.begin({ ignorePortalSig: true })
           .then((txBuilder) => {
             const addDaoMemberCmd = new AddDaoMemberCmd({
               teamId: tenantDaoId,
@@ -225,7 +249,7 @@ export default (config) => {
       }
 
       logInfo(`Creating and issuing ${symbol} asset to ${faucetDaoId} DAO ...`);
-      const createAndIssueAssetTx = await chainTxBuilder.begin()
+      const createAndIssueAssetTx = await chainTxBuilder.begin({ ignorePortalSig: true })
         .then((txBuilder) => {
 
           const maxSupply = 999999999999999;
@@ -280,7 +304,7 @@ export default (config) => {
   }
 
 
-  async function fundAddressFromFaucet(daoIdOrAddress, amount) {
+  async function fundAddressFromFaucet(daoIdOrPubKey, amount) {
     if (!amount) return;
 
     const chainService = await getChainService();
@@ -288,11 +312,11 @@ export default (config) => {
     const api = chainService.getChainNodeClient();
     const { username: faucetDaoId, wif: faucetSeed } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
 
-    const fundDaoTx = await chainTxBuilder.begin()
+    const fundDaoTx = await chainTxBuilder.begin({ ignorePortalSig: true })
       .then((txBuilder) => {
         const transferAssetCmd = new TransferAssetCmd({
           from: faucetDaoId,
-          to: daoIdOrAddress,
+          to: daoIdOrPubKey,
           asset: { ...config.DEIP_APPCHAIN_CORE_ASSET, amount }
         });
 
@@ -309,12 +333,17 @@ export default (config) => {
     const chainService = await getChainService();
     const rpc = chainService.getChainRpc();
     const api = chainService.getChainNodeClient();
-    if (config.DEIP_PORTAL_TENANT) {
-      const { id: tenantDaoId, privKey: tenantPrivKey } = config.DEIP_PORTAL_TENANT;
-      const { tx } = finalizedTx.getPayload();
-      await tx.signByTenantAsync({ tenant: tenantDaoId, tenantPrivKey: tenantPrivKey }, api);
-    }
-    await finalizedTx.sendAsync(rpc);
+
+    const { address: portalVerifier, privKey: portalVerifierPrivKey } = config.DEIP_PORTAL_VERIFIER;
+    const { tx } = finalizedTx.getPayload();
+
+    const verifiedTxPromise = tx.isOnBehalfPortal()
+      ? tx.verifyByPortalAsync({ verifier: portalVerifier, verificationKey: portalVerifierPrivKey }, api)
+      : Promise.resolve(tx.getSignedRawTx());
+
+    const verifiedTx = await verifiedTxPromise;
+
+    await rpc.sendTxAsync(verifiedTx);
     await waitAsync(timeout);
   }
 
