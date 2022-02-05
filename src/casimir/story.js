@@ -2,9 +2,9 @@ import config from './../config';
 import { logInfo, logSuccess, logError, logJsonResult } from './../log';
 import { randomAsHex } from '@polkadot/util-crypto';
 import { genSha256Hash, genRipemd160Hash } from '@deip/toolbox';
-import { APP_PROPOSAL, CONTRACT_AGREEMENT_TYPE, RESEARCH_CONTENT_TYPES } from '@deip/constants';
+import { APP_PROPOSAL, CONTRACT_AGREEMENT_TYPE, PROJECT_CONTENT_TYPES } from '@deip/constants';
 import {
-  waitAsync,
+  waitAsync, 
   getDefaultDomain
 } from './../utils';
 import {
@@ -19,8 +19,10 @@ import {
   CreateProposalCmd,
   AcceptProposalCmd,
   DeclineProposalCmd,
-  CreateAssetCmd,
-  IssueAssetCmd,
+  CreateFungibleTokenCmd,
+  IssueFungibleTokenCmd,
+  CreateNonFungibleTokenCmd,
+  IssueNonFungibleTokenCmd,
   CreateInvestmentOpportunityCmd,
   InvestCmd,
   CreateContractAgreementCmd,
@@ -411,7 +413,6 @@ async function run() {
   logJsonResult(`Bob-Dave multisig DAO created`, bobDaveDao);
 
 
-
   /**
    * Create Multigroup-1 (Eve-Charlie, Bob-Dave) multisig DAO actor with a threshold equal to 1 signature
    */
@@ -518,7 +519,7 @@ async function run() {
   const createTreasuryDaoByEveTx = await createTreasuryDaoTx.signAsync(getDaoCreatorPrivKey(treasury), api);
   await sendTxAndWaitAsync(createTreasuryDaoByEveTx);
 
-  await fundAddressFromFaucet(treasuryDaoId, DAO_FUNDING_AMOUNT);
+  await fundAddressFromFaucet(treasuryDaoId, "1000000000000000000000");
   const treasuryDao = await rpc.getAccountAsync(treasuryDaoId);
   logJsonResult(`Treasury DAO created`, treasuryDao);
 
@@ -608,7 +609,7 @@ async function run() {
         entityId: project1Content1Id,
         projectId: project1Id,
         teamId: aliceDaoId,
-        type: RESEARCH_CONTENT_TYPES.MILESTONE_CHAPTER,
+        type: PROJECT_CONTENT_TYPES.MILESTONE_CHAPTER,
         description: genSha256Hash({ "description": "Meta for Content-1 of Project-1" }),
         contentType: 1,
         content: genSha256Hash({ "description": "Data of Content-1 of Project-1" }),
@@ -768,7 +769,9 @@ async function run() {
 
   const createProposal1ByEveCharlieDaoByEveDaoTx = await createProposal1Tx.signAsync(eve.getPrivKey(), api); // 1st approval from Eve-Charlie DAO on behalf Eve DAO (final)
   await sendTxAndWaitAsync(createProposal1ByEveCharlieDaoByEveDaoTx);
-  const proposal1 = await rpc.getProposalAsync(proposal1Id);
+  // const proposal1 = await rpc.getProposalAsync(proposal1Id); // TODO: fix rpc call
+  const proposal1Opt = await api.query.deipProposal.proposalRepository(`0x${proposal1Id}`);
+  const proposal1 = proposal1Opt.unwrap();
   logJsonResult(`Eve-Charlie DAO Proposal-1 created`, proposal1);
 
 
@@ -787,7 +790,8 @@ async function run() {
     .then((txBuilder) => {
       const acceptProposalCmd = new AcceptProposalCmd({
         entityId: proposal1Id,
-        account: aliceBobDaoId
+        account: aliceBobDaoId,
+        batchWeight: proposal1.batchWeight
       });
       txBuilder.addCmd(acceptProposalCmd);
       return txBuilder.end();
@@ -802,7 +806,8 @@ async function run() {
     .then((txBuilder) => {
       const acceptProposalCmd = new AcceptProposalCmd({
         entityId: proposal1Id,
-        account: bobDaveDaoId
+        account: bobDaveDaoId,
+        batchWeight: proposal1.batchWeight
       });
       txBuilder.addCmd(acceptProposalCmd);
       return txBuilder.end();
@@ -820,7 +825,8 @@ async function run() {
     .then((txBuilder) => {
       const acceptProposalCmd = new AcceptProposalCmd({
         entityId: proposal1Id,
-        account: charlieDaoId
+        account: charlieDaoId,
+        batchWeight: proposal1.batchWeight
       });
       txBuilder.addCmd(acceptProposalCmd);
       return txBuilder.end();
@@ -835,7 +841,8 @@ async function run() {
     .then((txBuilder) => {
       const acceptProposalCmd = new AcceptProposalCmd({
         entityId: proposal1Id,
-        account: multigroup1DaoId
+        account: multigroup1DaoId,
+        batchWeight: proposal1.batchWeight
       });
       txBuilder.addCmd(acceptProposalCmd);
       return txBuilder.end();
@@ -857,7 +864,7 @@ async function run() {
   const stablecoin1Id = genRipemd160Hash(randomAsHex(20));
   const createStablecoin1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const createStablecoin1Cmd = new CreateAssetCmd({
+      const createStablecoin1Cmd = new CreateFungibleTokenCmd({
         entityId: stablecoin1Id,
         issuer: treasuryDaoId,
         name: "Stabelcoin for USD",
@@ -873,7 +880,7 @@ async function run() {
 
   const createStablecoin1ByTreasuryDaoTx = await createStablecoin1Tx.signAsync(treasury.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(createStablecoin1ByTreasuryDaoTx);
-  const stablecoin1 = await rpc.getAssetAsync(stablecoin1Id);
+  const stablecoin1 = await rpc.getAssetAsync(stablecoin1Id); // TODO: fix rpc call
   logJsonResult(`Stabelcoin-1 created`, stablecoin1);
 
 
@@ -884,21 +891,21 @@ async function run() {
   logInfo(`Issuing Stabelcoin-1 to Bob Dao, Eve Dao and Charlie Dao ...`);
   const issueStablecoin1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const issueStabelcoin1ToBobDaoCmd = new IssueAssetCmd({
+      const issueStabelcoin1ToBobDaoCmd = new IssueFungibleTokenCmd({
         issuer: treasuryDaoId,
         asset: { "id": stablecoin1Id, "symbol": "USDD", "precision": 2, "amount": "10000" },
         recipient: bobDaoId
       });
       txBuilder.addCmd(issueStabelcoin1ToBobDaoCmd);
 
-      const issueStabelcoin1ToEveDaoCmd = new IssueAssetCmd({
+      const issueStabelcoin1ToEveDaoCmd = new IssueFungibleTokenCmd({
         issuer: treasuryDaoId,
         asset: { "id": stablecoin1Id, "symbol": "USDD", "precision": 2, "amount": "5000" },
         recipient: eveDaoId
       });
       txBuilder.addCmd(issueStabelcoin1ToEveDaoCmd);
 
-      const issueStabelcoin1ToCharlieDaoCmd = new IssueAssetCmd({
+      const issueStabelcoin1ToCharlieDaoCmd = new IssueFungibleTokenCmd({
         issuer: treasuryDaoId,
         asset: { "id": stablecoin1Id, "symbol": "USDD", "precision": 2, "amount": "3000" },
         recipient: charlieDaoId
@@ -911,7 +918,7 @@ async function run() {
   const issueStablecoin1ByTreasuryDaoTx = await issueStablecoin1Tx.signAsync(treasury.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(issueStablecoin1ByTreasuryDaoTx);
 
-  const bobDaoStablecoin1Balance = await rpc.getAssetBalanceByOwnerAsync(bobDaoId, stablecoin1Id);
+  const bobDaoStablecoin1Balance = await rpc.getAssetBalanceByOwnerAsync(bobDaoId, stablecoin1Id); // TODO: fix rpc call
   logJsonResult(`Stabelcoin-1 issued to Bob Dao balance`, bobDaoStablecoin1Balance);
   const eveDaoStablecoin1Balance = await rpc.getAssetBalanceByOwnerAsync(eveDaoId, stablecoin1Id);
   logJsonResult(`Stabelcoin-1 issued to Eve Dao balance`, eveDaoStablecoin1Balance);
@@ -921,21 +928,22 @@ async function run() {
 
 
   /**
-   * Create NFT-1 for Project-1 by Alice Dao
+   * [LEGACY] Create FT-1 for Project-1 by Alice Dao
    */
-  logInfo(`Creating NFT-1 ...`);
+  logInfo(`Creating FT-1 ...`);
+  await fundAddressFromFaucet(aliceDaoId, "5000000000000000000000");
   const nft1Id = genRipemd160Hash(randomAsHex(20));
   const createNft1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const createNft1Cmd = new CreateAssetCmd({
+      const createNft1Cmd = new CreateFungibleTokenCmd({
         entityId: nft1Id,
         issuer: aliceDaoId,
-        name: "Non-Fungible Token of Project-1",
-        symbol: "NFT1",
+        name: "Fungible Token of Project-1",
+        symbol: "FT1",
         precision: 2,
         description: "",
         minBalance: 1,
-        projectTokenOption: {
+        projectTokenSettings: {
           projectId: project1Id,
           teamId: aliceDaoId // TODO: infer 'teamId' from 'projectId' for Graphene
         },
@@ -948,20 +956,20 @@ async function run() {
   const createNft1ByTreasuryDaoTx = await createNft1Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(createNft1ByTreasuryDaoTx);
   const nft1 = await rpc.getAssetAsync(nft1Id);
-  logJsonResult(`NFT-1 created`, nft1);
+  logJsonResult(`FT-1 created`, nft1);
 
 
 
   /**
-   * Issue some NFT-1 to Alice Dao balance by Alice Dao
+   * [LEGACY] Issue some FT-1 to Alice Dao balance by Alice Dao
    */
-  logInfo(`Issuing some NFT-1 to Alice Dao ...`);
+  logInfo(`Issuing some FT-1 to Alice Dao ...`);
   const issueNft1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const issueNft1ToAliceDaoCmd = new IssueAssetCmd({
+      const issueNft1ToAliceDaoCmd = new IssueFungibleTokenCmd({
         issuer: aliceDaoId,
-        asset: { "id": nft1Id, "symbol": "NFT1", "precision": 2, "amount": "15000" },
-        recipient: aliceDaoId
+        asset: { "id": nft1Id, "symbol": "FT1", "precision": 2, "amount": 100000, type: 1 },
+        recipient: aliceDaoId,
       });
       txBuilder.addCmd(issueNft1ToAliceDaoCmd);
       return txBuilder.end();
@@ -969,20 +977,20 @@ async function run() {
   const issueNft1ByAliceDaoTx = await issueNft1Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(issueNft1ByAliceDaoTx);
   const aliceDaoNft1Balance = await rpc.getAssetBalanceByOwnerAsync(aliceDaoId, nft1Id);
-  logJsonResult(`NFT-1 issued to Alice Dao balance`, aliceDaoNft1Balance);
+  logJsonResult(`FT-1 issued to Alice Dao balance`, aliceDaoNft1Balance);
 
 
 
   /**
-   * Transfer some NFT-1 to Charlie Dao balance by Alice Dao
+   *  [LEGACY] Transfer some FT-1 to Charlie Dao balance by Alice Dao
    */
-  logInfo(`Transferring some NFT-1 to Charlie Dao ...`);
+  logInfo(`Transferring some FT-1 to Charlie Dao ...`);
   const transferNft1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
       const nft1TransferCmd = new TransferAssetCmd({
         from: aliceDaoId,
         to: charlieDaoId,
-        asset: { "id": nft1Id, "symbol": "NFT1", "precision": 2, "amount": "1000" }
+        asset: { "id": nft1Id, "symbol": "FT1", "precision": 2, "amount": 1000, type: 1 }
       });
 
       txBuilder.addCmd(nft1TransferCmd);
@@ -992,8 +1000,84 @@ async function run() {
   const transferNft1ByAliceDaoTx = await transferNft1Tx.signAsync(alice.getPrivKey(), api);
   await sendTxAndWaitAsync(transferNft1ByAliceDaoTx);
   const charlieDaoNft1Balance = await rpc.getAssetBalanceByOwnerAsync(charlieDaoId, nft1Id);
-  logJsonResult(`NFT-1 transfered to Charlie Dao balance`, charlieDaoNft1Balance);
+  logJsonResult(`FT-1 transfered to Charlie Dao balance`, charlieDaoNft1Balance);
 
+
+  /**
+   *  Create NFT-2 for Project-1 by Alice Dao
+   */
+  logInfo(`Creating NFT-2 ...`);
+  await fundAddressFromFaucet(aliceDaoId, "5000000000000000000000");
+  const nft2Id = genRipemd160Hash(randomAsHex(20));
+  const createNft2Tx = await chainTxBuilder.begin()
+    .then((txBuilder) => {
+      const createNft2Cmd = new CreateNonFungibleTokenCmd({
+        entityId: nft2Id,
+        issuer: aliceDaoId,
+        name: "Non-Fungible Token 2 of Project-1",
+        symbol: "NFT2",
+        precision: 2,
+        description: "",
+        minBalance: 1,
+        projectTokenSettings: {
+          projectId: project1Id,
+          teamId: aliceDaoId // TODO: infer 'teamId' from 'projectId' for Graphene
+        },
+        maxSupply: 1000000000000000 // TODO: add 'maxSupply' for Substrate assets_pallet wrapper
+      });
+      txBuilder.addCmd(createNft2Cmd);
+      return txBuilder.end();
+    });
+
+  const createNft2ByTreasuryDaoTx = await createNft2Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
+  await sendTxAndWaitAsync(createNft2ByTreasuryDaoTx);
+  const nft2 = await rpc.getAssetAsync(nft2Id);
+  logJsonResult(`NFT-2 created`, nft2);
+
+
+
+  /**
+   *  Issue some NFT-2 to Alice Dao balance by Alice Dao
+   */
+  logInfo(`Issuing some NFT-1 to Alice Dao ...`);
+  const issueNft2Tx = await chainTxBuilder.begin()
+    .then((txBuilder) => {
+      const issueNft2ToAliceDaoCmd = new IssueNonFungibleTokenCmd({
+        issuer: aliceDaoId,
+        asset: { "id": nft2Id, "symbol": "NFT1", "precision": 2, "amount": 1, type: 2 },
+        recipient: aliceDaoId,
+        instanceId: 1
+      });
+      txBuilder.addCmd(issueNft2ToAliceDaoCmd);
+      return txBuilder.end();
+    });
+  const issueNft2ByAliceDaoTx = await issueNft2Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
+  await sendTxAndWaitAsync(issueNft2ByAliceDaoTx);
+  const aliceDaoNft2Balance = await rpc.getAssetBalanceByOwnerAsync(aliceDaoId, nft2Id);
+  logJsonResult(`NFT-2 issued to Alice Dao balance`, aliceDaoNft2Balance);
+
+
+
+  /**
+   *  Transfer some NFT-2 to Charlie Dao balance by Alice Dao
+   */
+  logInfo(`Transferring some NFT-2 to Charlie Dao ...`);
+  const transferNft2Tx = await chainTxBuilder.begin()
+    .then((txBuilder) => {
+      const nft2TransferCmd = new TransferAssetCmd({
+        from: aliceDaoId,
+        to: charlieDaoId,
+        asset: { "id": nft2Id, "symbol": "NFT1", "precision": 2, "amount": 1, type: 2 }
+      });
+
+      txBuilder.addCmd(nft2TransferCmd);
+      return txBuilder.end();
+    });
+
+  const transferNft2ByAliceDaoTx = await transferNft2Tx.signAsync(alice.getPrivKey(), api);
+  await sendTxAndWaitAsync(transferNft2ByAliceDaoTx);
+  const charlieDaoNft2Balance = await rpc.getAssetBalanceByOwnerAsync(charlieDaoId, nft1Id);
+  logJsonResult(`NFT-2 transfered to Charlie Dao balance`, charlieDaoNft2Balance);
 
 
   /**
@@ -1019,8 +1103,9 @@ async function run() {
     });
   const createInvestmentOpportunityByAliceDaoTx = await createInvestmentOpportunityTx.signAsync(alice.getPrivKey(), api);
   await sendTxAndWaitAsync(createInvestmentOpportunityByAliceDaoTx);
-  const invstOpp1 = await rpc.getInvestmentOpportunityAsync(invstOpp1Id);
-  logJsonResult(`InvestmentOpportunity-1 created`, invstOpp1);
+  // const invstOpp1 = await rpc.getInvestmentOpportunityAsync(invstOpp1Id); // TODO: fix rpc call
+  const invstOpp1Opt = await api.query.deip.simpleCrowdfundingMap(`0x${invstOpp1Id}`);
+  logJsonResult(`InvestmentOpportunity-1 created`, invstOpp1Opt);
 
   logInfo(`Waiting for InvestmentOpportunity-1 activation time ...\n`);
   await waitAsync(invstOpp1StartsInMillisecs + 2000);
@@ -1028,7 +1113,7 @@ async function run() {
 
 
   /**
-   * Invest some Stabelcoin-1 to InvestmentOpportunity-1 to obtain some NFT-1 by Bob Dao
+   * Invest some Stabelcoin-1 to InvestmentOpportunity-1 to obtain some FT-1 by Bob Dao
    */
   logInfo(`Investing to InvestmentOpportunity-1 by Bob Dao ...`);
   const investToInvestmentOpportunity1ByBobTx = await chainTxBuilder.begin()
@@ -1036,7 +1121,7 @@ async function run() {
       const investCmd = new InvestCmd({
         investmentOpportunityId: invstOpp1Id,
         investor: bobDaoId,
-        asset: { "id": stablecoin1Id, "symbol": "USDD", "precision": 2, "amount": 2000 }
+        asset: { "id": stablecoin1Id, "symbol": "USDD", "precision": 2, "amount": 2000, type: 1 }
       });
       txBuilder.addCmd(investCmd);
       return txBuilder.end();
@@ -1049,7 +1134,7 @@ async function run() {
 
 
   /**
-   * Invest some Stabelcoin-1 to InvestmentOpportunity-1 to obtain some NFT-1 by Eve Dao
+   * Invest some Stabelcoin-1 to InvestmentOpportunity-1 to obtain some FT-1 by Eve Dao
    */
   logInfo(`Investing to InvestmentOpportunity-1 by Eve Dao ...`);
   const investToInvestmentOpportunity1ByEveTx = await chainTxBuilder.begin()
@@ -1057,7 +1142,7 @@ async function run() {
       const investCmd = new InvestCmd({
         investmentOpportunityId: invstOpp1Id,
         investor: eveDaoId,
-        asset: { "id": stablecoin1Id, "symbol": "USDD", "precision": 2, "amount": 4000 }
+        asset: { "id": stablecoin1Id, "symbol": "USDD", "precision": 2, "amount": 4000, type: 1 }
       });
       txBuilder.addCmd(investCmd);
       return txBuilder.end();
@@ -1072,7 +1157,7 @@ async function run() {
   const eveDaoNft1Balance = await rpc.getAssetBalanceByOwnerAsync(eveDaoId, nft1Id);
   logJsonResult(`Invested to InvestmentOpportunity-1, NFT-1 Eve Dao balance`, eveDaoNft1Balance);
   const aliceDaoNft1Balance2 = await rpc.getAssetBalanceByOwnerAsync(aliceDaoId, nft1Id);
-  logJsonResult(`NFT-1 Alice Dao balance after finalized InvestmentOpportunity-1`, aliceDaoNft1Balance2);
+  logJsonResult(`FT-1 Alice Dao balance after finalized InvestmentOpportunity-1`, aliceDaoNft1Balance2);
 
 
 

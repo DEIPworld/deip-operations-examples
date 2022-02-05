@@ -10,9 +10,9 @@ import {
 } from './../utils';
 import {
   CreateDaoCmd,
-  CreatePortalCmd,
-  CreateAssetCmd,
-  IssueAssetCmd,
+  // CreatePortalCmd,
+  CreateFungibleTokenCmd,
+  IssueFungibleTokenCmd,
   TransferAssetCmd,
   AddDaoMemberCmd
 } from '@deip/command-models';
@@ -21,9 +21,9 @@ import {
 
 export default (config) => {
 
-  const FAUCET_DAO_FUNDING_AMOUNT = "900000000000000000000"; /* 900 MUNIT */
-  const DAO_SEED_FUNDING_AMOUNT = PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN ? "1100000000000000000" /* 1.1 MUNIT */ : 0
-  const DAO_FUNDING_AMOUNT = PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN ? "1000000000000000000" /* 1 MUNIT */ : 10000
+  const FAUCET_DAO_FUNDING_AMOUNT = "100000000000000000000000000"; /*  MUNIT */
+  const DAO_SEED_FUNDING_AMOUNT = PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN ? "100000000000000000000000" /* MUNIT */ : 0
+  const DAO_FUNDING_AMOUNT = PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN ? "10000000000000000000" /* 1 MUNIT */ : 10000
 
 
   async function setupTenantPortal() {
@@ -140,27 +140,27 @@ export default (config) => {
       const createdTenantDao = await rpc.getAccountAsync(tenantDaoId);
       logJsonResult(`Tenant DAO created`, createdTenantDao);
 
-      logInfo(`Creating Portal ...`);
-      const createTenantPortalTx = await chainTxBuilder.begin({ ignorePortalSig: true })
-        .then((txBuilder) => {
-          const createPortalCmd = new CreatePortalCmd({
-            owner: tenantDaoId,
-            delegate: portalVerifier,
-            metadata: genSha256Hash({ "description": "DAO delegate" })
-          })
-          txBuilder.addCmd(createPortalCmd);
-          return txBuilder.end();
-        });
+      // logInfo(`Creating Portal ...`);
+      // const createTenantPortalTx = await chainTxBuilder.begin({ ignorePortalSig: true })
+      //   .then((txBuilder) => {
+      //     const createPortalCmd = new CreatePortalCmd({
+      //       owner: tenantDaoId,
+      //       delegate: portalVerifier,
+      //       metadata: genSha256Hash({ "description": "DAO delegate" })
+      //     })
+      //     txBuilder.addCmd(createPortalCmd);
+      //     return txBuilder.end();
+      //   });
 
-      const createTenantPortalByTenantTx = await createTenantPortalTx.signAsync(getDaoCreatorPrivKey(tenantSeed), api);
-      await sendTxAndWaitAsync(createTenantPortalByTenantTx);
+      // const createTenantPortalByTenantTx = await createTenantPortalTx.signAsync(getDaoCreatorPrivKey(tenantSeed), api);
+      // await sendTxAndWaitAsync(createTenantPortalByTenantTx);
 
-      const portal = await api.query.deipPortal.portalRepository(`0x${tenantDaoId}`);
-      logJsonResult(`Portal created`, portal);
+      // const portal = await api.query.deipPortal.portalRepository(`0x${tenantDaoId}`);
+      // logJsonResult(`Portal created`, portal);
 
-      logInfo(`Funding Portal ...`);
-      await fundAddressFromFaucet(portalVerifier, DAO_SEED_FUNDING_AMOUNT);
-      logInfo(`End funding Portal`);
+      // logInfo(`Funding Portal ...`);
+      // await fundAddressFromFaucet(portalVerifier, DAO_SEED_FUNDING_AMOUNT);
+      // logInfo(`End funding Portal`);
 
     }
 
@@ -253,7 +253,7 @@ export default (config) => {
         .then((txBuilder) => {
 
           const maxSupply = 999999999999999;
-          const createAssetCmd = new CreateAssetCmd({
+          const createFungibleTokenCmd = new CreateFungibleTokenCmd({
             entityId: assetId,
             issuer: faucetDaoId,
             name: `Asset ${symbol}`,
@@ -263,14 +263,14 @@ export default (config) => {
             minBalance: 1,
             maxSupply: maxSupply
           });
-          txBuilder.addCmd(createAssetCmd);
+          txBuilder.addCmd(createFungibleTokenCmd);
 
-          const issueAssetCmd = new IssueAssetCmd({
+          const issueFungibleTokenCmd = new IssueFungibleTokenCmd({
             issuer: faucetDaoId,
             asset: { "id": assetId, symbol, precision, "amount": maxSupply },
             recipient: faucetDaoId
           });
-          txBuilder.addCmd(issueAssetCmd);
+          txBuilder.addCmd(issueFungibleTokenCmd);
 
           return txBuilder.end();
         });
@@ -337,13 +337,13 @@ export default (config) => {
     const { address: portalVerifier, privKey: portalVerifierPrivKey } = config.DEIP_PORTAL_VERIFIER;
     const { tx } = finalizedTx.getPayload();
 
-    const verifiedTxPromise = tx.isOnBehalfPortal()
-      ? tx.verifyByPortalAsync({ verifier: portalVerifier, verificationKey: portalVerifierPrivKey }, api)
-      : Promise.resolve(tx.getSignedRawTx());
+    // const verifiedTxPromise = tx.isOnBehalfPortal()
+    //   ? tx.verifyByPortalAsync({ verifier: portalVerifier, verificationKey: portalVerifierPrivKey }, api)
+    //   : Promise.resolve(tx.getSignedRawTx());
+    // const verifiedTx = await verifiedTxPromise;
+    // await rpc.sendTxAsync(verifiedTx);
 
-    const verifiedTx = await verifiedTxPromise;
-
-    await rpc.sendTxAsync(verifiedTx);
+    await tx.sendAsync(rpc);
     await waitAsync(timeout);
   }
 
