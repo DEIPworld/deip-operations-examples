@@ -931,7 +931,6 @@ async function run() {
    * [LEGACY] Create FT-1 for Project-1 by Alice Dao
    */
   logInfo(`Creating FT-1 ...`);
-  await fundAddressFromFaucet(aliceDaoId, "5000000000000000000000");
   const nft1Id = genRipemd160Hash(randomAsHex(20));
   const createNft1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
@@ -1007,7 +1006,6 @@ async function run() {
    *  Create NFT-2 for Project-1 by Alice Dao
    */
   logInfo(`Creating NFT-2 ...`);
-  await fundAddressFromFaucet(aliceDaoId, "5000000000000000000000");
   const nft2Id = genRipemd160Hash(randomAsHex(20));
   const createNft2Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
