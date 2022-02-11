@@ -14,6 +14,9 @@ const config = {
   DEIP_CHAIN_ID: process.env.DEIP_CHAIN_ID,
   DEIP_PORTAL_TENANT: process.env.DEIP_PORTAL_TENANT ? JSON.parse(process.env.DEIP_PORTAL_TENANT) : null,
   DEIP_PORTAL_VERIFIER: process.env.DEIP_PORTAL_VERIFIER ? JSON.parse(process.env.DEIP_PORTAL_VERIFIER) : null,
+  FAUCET_DAO_FUNDING_AMOUNT: process.env.FAUCET_DAO_FUNDING_AMOUNT,
+  DAO_SEED_FUNDING_AMOUNT: process.env.DAO_SEED_FUNDING_AMOUNT,
+  DAO_FUNDING_AMOUNT: process.env.DAO_FUNDING_AMOUNT
 };
 
 module.exports = config;

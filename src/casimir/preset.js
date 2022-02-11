@@ -17,14 +17,11 @@ import {
   AddDaoMemberCmd
 } from '@deip/command-models';
 
-
-
 export default (config) => {
 
-  const FAUCET_DAO_FUNDING_AMOUNT = "100000000000000000000000000000"; /*  MUNIT */
-  const DAO_SEED_FUNDING_AMOUNT = PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN ? "100000000000000000000000000" /* MUNIT */ : 0
-  const DAO_FUNDING_AMOUNT = PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN ? "10000000000000000000000" /* 1 MUNIT */ : 10000
-
+  const FAUCET_DAO_FUNDING_AMOUNT = config.FAUCET_DAO_FUNDING_AMOUNT;
+  const DAO_SEED_FUNDING_AMOUNT = config.DAO_SEED_FUNDING_AMOUNT;
+  const DAO_FUNDING_AMOUNT = config.DAO_FUNDING_AMOUNT;
 
   async function setupTenantPortal() {
     logInfo(`Setting up Tenant Portal ...`);

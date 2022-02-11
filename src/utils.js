@@ -45,8 +45,8 @@ const getSubstrateMultiAddress = (addresses, threshold) => {
 
 
 const getDefaultDomain = () => {
-  const defaultDomainId = `0x6c4bb3bcf1a88e3b51de88576d592f1f980c5bbb`;
-  return defaultDomainId;
+  const defaultDomainId = `0x6225314ed224d2b25a22f01a34af16d3354d556c`;
+  return defaultDomainId; 
 }
 
 const capitalize = (string) => {
