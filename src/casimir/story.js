@@ -719,6 +719,8 @@ async function run() {
   const project3Id = genRipemd160Hash(randomAsHex(20));
   const project4Id = genRipemd160Hash(randomAsHex(20));
 
+  let createProposalCmd;
+
   const createProposal1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
 
@@ -750,7 +752,7 @@ async function run() {
         asset: { ...config.DEIP_APPCHAIN_CORE_ASSET, amount: "1000000000" }
       });
 
-      const createProposalCmd = new CreateProposalCmd({
+      createProposalCmd = new CreateProposalCmd({
         entityId: proposal1Id,
         type: APP_PROPOSAL.PROJECT_PROPOSAL,
         creator: eveCharlieDaoId,
@@ -1106,7 +1108,7 @@ async function run() {
   logJsonResult(`InvestmentOpportunity-1 created`, invstOpp1Opt);
 
   logInfo(`Waiting for InvestmentOpportunity-1 activation time ...\n`);
-  await waitAsync(invstOpp1StartsInMillisecs + 2000);
+  await waitAsync(invstOpp1StartsInMillisecs + config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK);
 
 
 
@@ -1151,9 +1153,9 @@ async function run() {
   logSuccess(`Invested to InvestmentOpportunity-1 by Eve Dao\n`);
 
   const bobDaoNft1Balance = await rpc.getAssetBalanceByOwnerAsync(bobDaoId, nft1Id);
-  logJsonResult(`Invested to InvestmentOpportunity-1, NFT-1 Bob Dao balance`, bobDaoNft1Balance);
+  logJsonResult(`Invested to InvestmentOpportunity-1, FT-1 Bob Dao balance`, bobDaoNft1Balance);
   const eveDaoNft1Balance = await rpc.getAssetBalanceByOwnerAsync(eveDaoId, nft1Id);
-  logJsonResult(`Invested to InvestmentOpportunity-1, NFT-1 Eve Dao balance`, eveDaoNft1Balance);
+  logJsonResult(`Invested to InvestmentOpportunity-1, FT-1 Eve Dao balance`, eveDaoNft1Balance);
   const aliceDaoNft1Balance2 = await rpc.getAssetBalanceByOwnerAsync(aliceDaoId, nft1Id);
   logJsonResult(`FT-1 Alice Dao balance after finalized InvestmentOpportunity-1`, aliceDaoNft1Balance2);
 
@@ -1190,7 +1192,7 @@ async function run() {
   logJsonResult(`LicenseAgreement-1 between Alice Dao and Charlie Dao parties is initiated`, initiatedLicenseAgreement1);
 
   logInfo(`Waiting for LicenseAgreement-1 signing period activation time ...\n`);
-  await waitAsync(licenseAgreement1SigningActivatesInMillisecs + 2000);
+  await waitAsync(licenseAgreement1SigningActivatesInMillisecs + config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK);
 
 
 
