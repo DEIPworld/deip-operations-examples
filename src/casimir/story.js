@@ -719,8 +719,7 @@ async function run() {
   const project3Id = genRipemd160Hash(randomAsHex(20));
   const project4Id = genRipemd160Hash(randomAsHex(20));
 
-  let createProposalCmd;
-
+  let proposal1BatchWeight;
   const createProposal1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
 
@@ -752,21 +751,28 @@ async function run() {
         asset: { ...config.DEIP_APPCHAIN_CORE_ASSET, amount: "1000000000" }
       });
 
-      createProposalCmd = new CreateProposalCmd({
-        entityId: proposal1Id,
-        type: APP_PROPOSAL.PROJECT_PROPOSAL,
-        creator: eveCharlieDaoId,
-        expirationTime: Date.now() + 3e6,
-        proposedCmds: [
-          createProject3Cmd, 
-          createProject4Cmd, 
-          fundProject4Cmd,
-          fundProject3Cmd
-        ],
-      });
-      txBuilder.addCmd(createProposalCmd);
+      const proposal1Batch = [
+        createProject3Cmd,
+        createProject4Cmd,
+        fundProject4Cmd,
+        fundProject3Cmd
+      ];
 
-      return txBuilder.end();
+      return chainTxBuilder.getBatchWeight(proposal1Batch)
+        .then((batchWeight) => {
+          proposal1BatchWeight = batchWeight;
+
+          const createProposalCmd = new CreateProposalCmd({
+            entityId: proposal1Id,
+            type: APP_PROPOSAL.PROJECT_PROPOSAL,
+            creator: eveCharlieDaoId,
+            expirationTime: Date.now() + 3e6,
+            proposedCmds: proposal1Batch,
+          });
+
+          txBuilder.addCmd(createProposalCmd);
+          return txBuilder.end();
+        })
     });
 
   const createProposal1ByEveCharlieDaoByEveDaoTx = await createProposal1Tx.signAsync(eve.getPrivKey(), api); // 1st approval from Eve-Charlie DAO on behalf Eve DAO (final)
@@ -793,7 +799,7 @@ async function run() {
       const acceptProposalCmd = new AcceptProposalCmd({
         entityId: proposal1Id,
         account: aliceBobDaoId,
-        batchWeight: proposal1.batchWeight
+        batchWeight: proposal1BatchWeight,
       });
       txBuilder.addCmd(acceptProposalCmd);
       return txBuilder.end();
@@ -809,7 +815,7 @@ async function run() {
       const acceptProposalCmd = new AcceptProposalCmd({
         entityId: proposal1Id,
         account: bobDaveDaoId,
-        batchWeight: proposal1.batchWeight
+        batchWeight: proposal1BatchWeight
       });
       txBuilder.addCmd(acceptProposalCmd);
       return txBuilder.end();
@@ -828,7 +834,7 @@ async function run() {
       const acceptProposalCmd = new AcceptProposalCmd({
         entityId: proposal1Id,
         account: charlieDaoId,
-        batchWeight: proposal1.batchWeight
+        batchWeight: proposal1BatchWeight
       });
       txBuilder.addCmd(acceptProposalCmd);
       return txBuilder.end();
@@ -844,7 +850,7 @@ async function run() {
       const acceptProposalCmd = new AcceptProposalCmd({
         entityId: proposal1Id,
         account: multigroup1DaoId,
-        batchWeight: proposal1.batchWeight
+        batchWeight: proposal1BatchWeight
       });
       txBuilder.addCmd(acceptProposalCmd);
       return txBuilder.end();
