@@ -777,9 +777,7 @@ async function run() {
 
   const createProposal1ByEveCharlieDaoByEveDaoTx = await createProposal1Tx.signAsync(eve.getPrivKey(), api); // 1st approval from Eve-Charlie DAO on behalf Eve DAO (final)
   await sendTxAndWaitAsync(createProposal1ByEveCharlieDaoByEveDaoTx);
-  // const proposal1 = await rpc.getProposalAsync(proposal1Id); // TODO: fix rpc call
-  const proposal1Opt = await api.query.deipProposal.proposalRepository(`0x${proposal1Id}`);
-  const proposal1 = proposal1Opt.unwrap();
+  const proposal1 = await rpc.getProposalAsync(proposal1Id);
   logJsonResult(`Eve-Charlie DAO Proposal-1 created`, proposal1);
 
 
