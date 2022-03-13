@@ -886,7 +886,7 @@ async function run() {
 
   const createStablecoin1ByTreasuryDaoTx = await createStablecoin1Tx.signAsync(treasury.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(createStablecoin1ByTreasuryDaoTx);
-  const stablecoin1 = await rpc.getAssetAsync(stablecoin1Id); // TODO: fix rpc call
+  const stablecoin1 = await rpc.getAssetAsync(stablecoin1Id);
   logJsonResult(`Stabelcoin-1 created`, stablecoin1);
 
 
@@ -924,7 +924,7 @@ async function run() {
   const issueStablecoin1ByTreasuryDaoTx = await issueStablecoin1Tx.signAsync(treasury.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(issueStablecoin1ByTreasuryDaoTx);
 
-  const bobDaoStablecoin1Balance = await rpc.getAssetBalanceByOwnerAsync(bobDaoId, stablecoin1Id); // TODO: fix rpc call
+  const bobDaoStablecoin1Balance = await rpc.getAssetBalanceByOwnerAsync(bobDaoId, stablecoin1Id);
   logJsonResult(`Stabelcoin-1 issued to Bob Dao balance`, bobDaoStablecoin1Balance);
   const eveDaoStablecoin1Balance = await rpc.getAssetBalanceByOwnerAsync(eveDaoId, stablecoin1Id);
   logJsonResult(`Stabelcoin-1 issued to Eve Dao balance`, eveDaoStablecoin1Balance);
@@ -1107,9 +1107,8 @@ async function run() {
     });
   const createInvestmentOpportunityByAliceDaoTx = await createInvestmentOpportunityTx.signAsync(alice.getPrivKey(), api);
   await sendTxAndWaitAsync(createInvestmentOpportunityByAliceDaoTx);
-  // const invstOpp1 = await rpc.getInvestmentOpportunityAsync(invstOpp1Id); // TODO: fix rpc call
-  const invstOpp1Opt = await api.query.deip.simpleCrowdfundingMap(`0x${invstOpp1Id}`);
-  logJsonResult(`InvestmentOpportunity-1 created`, invstOpp1Opt);
+  const invstOpp1 = await rpc.getInvestmentOpportunityAsync(invstOpp1Id);
+  logJsonResult(`InvestmentOpportunity-1 created`, invstOpp1);
 
   logInfo(`Waiting for InvestmentOpportunity-1 activation time ...\n`);
   await waitAsync(invstOpp1StartsInMillisecs + config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK);
