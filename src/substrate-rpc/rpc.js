@@ -49,12 +49,12 @@ const getProposalAsync = async function (id) {
 }
 
 
-const getAssetAsync = async function (id) {
+const getFungibleTokenAsync = async function (id) {
   return rpcToChainNodeAsync("assets_getAsset", [null, toHexFormat(id)]);
 }
 
 
-const getAssetBalanceByOwnerAsync = async function (address, assetId) {
+const getFungibleTokenBalanceByOwnerAsync = async function (address, assetId) {
   return rpcToChainNodeAsync("assets_getAssetBalanceByOwner", [null, address, toHexFormat(assetId)]);
 }
 
@@ -78,8 +78,8 @@ export {
   getAccountAsync,
   getProjectAsync,
   getProposalAsync,
-  getAssetAsync,
-  getAssetBalanceByOwnerAsync,
+  getFungibleTokenAsync,
+  getFungibleTokenBalanceByOwnerAsync,
   getInvestmentOpportunityAsync,
   getContractAgreementAsync,
   sendTxAsync

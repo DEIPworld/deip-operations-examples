@@ -886,7 +886,7 @@ async function run() {
 
   const createStablecoin1ByTreasuryDaoTx = await createStablecoin1Tx.signAsync(treasury.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(createStablecoin1ByTreasuryDaoTx);
-  const stablecoin1 = await rpc.getAssetAsync(stablecoin1Id);
+  const stablecoin1 = await rpc.getFungibleTokenAsync(stablecoin1Id);
   logJsonResult(`Stabelcoin-1 created`, stablecoin1);
 
 
@@ -924,11 +924,11 @@ async function run() {
   const issueStablecoin1ByTreasuryDaoTx = await issueStablecoin1Tx.signAsync(treasury.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(issueStablecoin1ByTreasuryDaoTx);
 
-  const bobDaoStablecoin1Balance = await rpc.getAssetBalanceByOwnerAsync(bobDaoId, stablecoin1Id);
+  const bobDaoStablecoin1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(bobDaoId, stablecoin1Id);
   logJsonResult(`Stabelcoin-1 issued to Bob Dao balance`, bobDaoStablecoin1Balance);
-  const eveDaoStablecoin1Balance = await rpc.getAssetBalanceByOwnerAsync(eveDaoId, stablecoin1Id);
+  const eveDaoStablecoin1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(eveDaoId, stablecoin1Id);
   logJsonResult(`Stabelcoin-1 issued to Eve Dao balance`, eveDaoStablecoin1Balance);
-  const charlieDaoStablecoin1Balance = await rpc.getAssetBalanceByOwnerAsync(charlieDaoId, stablecoin1Id);
+  const charlieDaoStablecoin1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(charlieDaoId, stablecoin1Id);
   logJsonResult(`Stabelcoin-1 issued to Charlie Dao balance`, charlieDaoStablecoin1Balance);
 
 
@@ -960,7 +960,7 @@ async function run() {
 
   const createNft1ByTreasuryDaoTx = await createNft1Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(createNft1ByTreasuryDaoTx);
-  const nft1 = await rpc.getAssetAsync(nft1Id);
+  const nft1 = await rpc.getFungibleTokenAsync(nft1Id);
   logJsonResult(`FT-1 created`, nft1);
 
 
@@ -981,7 +981,7 @@ async function run() {
     });
   const issueNft1ByAliceDaoTx = await issueNft1Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(issueNft1ByAliceDaoTx);
-  const aliceDaoNft1Balance = await rpc.getAssetBalanceByOwnerAsync(aliceDaoId, nft1Id);
+  const aliceDaoNft1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(aliceDaoId, nft1Id);
   logJsonResult(`FT-1 issued to Alice Dao balance`, aliceDaoNft1Balance);
 
 
@@ -1004,7 +1004,7 @@ async function run() {
 
   const transferNft1ByAliceDaoTx = await transferNft1Tx.signAsync(alice.getPrivKey(), api);
   await sendTxAndWaitAsync(transferNft1ByAliceDaoTx);
-  const charlieDaoNft1Balance = await rpc.getAssetBalanceByOwnerAsync(charlieDaoId, nft1Id);
+  const charlieDaoNft1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(charlieDaoId, nft1Id);
   logJsonResult(`FT-1 transfered to Charlie Dao balance`, charlieDaoNft1Balance);
 
 
@@ -1035,7 +1035,7 @@ async function run() {
 
   const createNft2ByTreasuryDaoTx = await createNft2Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(createNft2ByTreasuryDaoTx);
-  const nft2 = await rpc.getAssetAsync(nft2Id);
+  const nft2 = await rpc.getFungibleTokenAsync(nft2Id);
   logJsonResult(`NFT-2 created`, nft2);
 
 
@@ -1057,7 +1057,7 @@ async function run() {
     });
   const issueNft2ByAliceDaoTx = await issueNft2Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(issueNft2ByAliceDaoTx);
-  const aliceDaoNft2Balance = await rpc.getAssetBalanceByOwnerAsync(aliceDaoId, nft2Id);
+  const aliceDaoNft2Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(aliceDaoId, nft2Id);
   logJsonResult(`NFT-2 issued to Alice Dao balance`, aliceDaoNft2Balance);
 
 
@@ -1080,7 +1080,7 @@ async function run() {
 
   const transferNft2ByAliceDaoTx = await transferNft2Tx.signAsync(alice.getPrivKey(), api);
   await sendTxAndWaitAsync(transferNft2ByAliceDaoTx);
-  const charlieDaoNft2Balance = await rpc.getAssetBalanceByOwnerAsync(charlieDaoId, nft1Id);
+  const charlieDaoNft2Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(charlieDaoId, nft1Id);
   logJsonResult(`NFT-2 transfered to Charlie Dao balance`, charlieDaoNft2Balance);
 
 
@@ -1155,11 +1155,11 @@ async function run() {
   await sendTxAndWaitAsync(investToInvestmentOpportunity1ByEveDaoTx);
   logSuccess(`Invested to InvestmentOpportunity-1 by Eve Dao\n`);
 
-  const bobDaoNft1Balance = await rpc.getAssetBalanceByOwnerAsync(bobDaoId, nft1Id);
+  const bobDaoNft1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(bobDaoId, nft1Id);
   logJsonResult(`Invested to InvestmentOpportunity-1, FT-1 Bob Dao balance`, bobDaoNft1Balance);
-  const eveDaoNft1Balance = await rpc.getAssetBalanceByOwnerAsync(eveDaoId, nft1Id);
+  const eveDaoNft1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(eveDaoId, nft1Id);
   logJsonResult(`Invested to InvestmentOpportunity-1, FT-1 Eve Dao balance`, eveDaoNft1Balance);
-  const aliceDaoNft1Balance2 = await rpc.getAssetBalanceByOwnerAsync(aliceDaoId, nft1Id);
+  const aliceDaoNft1Balance2 = await rpc.getFungibleTokenBalanceByOwnerAsync(aliceDaoId, nft1Id);
   logJsonResult(`FT-1 Alice Dao balance after finalized InvestmentOpportunity-1`, aliceDaoNft1Balance2);
 
 

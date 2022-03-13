@@ -18,8 +18,8 @@ import {
   getAccountAsync,
   getProjectAsync,
   getProposalAsync,
-  getAssetAsync,
-  getAssetBalanceByOwnerAsync,
+  getFungibleTokenAsync,
+  getFungibleTokenBalanceByOwnerAsync,
   getInvestmentOpportunityAsync,
   getContractAgreementAsync,
   sendTxAsync
@@ -689,7 +689,7 @@ async function run(api) {
 
   await createStablecoin1ByAliceDaoTx.signAsync(treasury); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(createStablecoin1ByAliceDaoTx.toHex());
-  const stablecoin1 = await getAssetAsync(stablecoin1Id);
+  const stablecoin1 = await getFungibleTokenAsync(stablecoin1Id);
   logJsonResult(`Stabelcoin-1 created`, stablecoin1);
 
 
@@ -710,7 +710,7 @@ async function run(api) {
   ]);
   await issueStablecoin1ToBobDaoByTreasuryDaoTx.signAsync(treasury); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(issueStablecoin1ToBobDaoByTreasuryDaoTx.toHex());
-  const bobDaoStablecoin1Balance = await getAssetBalanceByOwnerAsync(bobDaoAddress, stablecoin1Id);
+  const bobDaoStablecoin1Balance = await getFungibleTokenBalanceByOwnerAsync(bobDaoAddress, stablecoin1Id);
   logJsonResult(`Stabelcoin-1 issued to Bob Dao balance`, bobDaoStablecoin1Balance);
 
 
@@ -731,7 +731,7 @@ async function run(api) {
   ]);
   await issueStablecoin1ToEveDaoByTreasuryDaoTx.signAsync(treasury); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(issueStablecoin1ToEveDaoByTreasuryDaoTx.toHex());
-  const eveDaoStablecoin1Balance = await getAssetBalanceByOwnerAsync(eveDaoAddress, stablecoin1Id);
+  const eveDaoStablecoin1Balance = await getFungibleTokenBalanceByOwnerAsync(eveDaoAddress, stablecoin1Id);
   logJsonResult(`Stabelcoin-1 issued to Eve Dao balance`, eveDaoStablecoin1Balance);
 
 
@@ -751,7 +751,7 @@ async function run(api) {
   ]);
   await issueStablecoin1ToCharlieDaoByTreasuryDaoTx.signAsync(treasury); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(issueStablecoin1ToCharlieDaoByTreasuryDaoTx.toHex());
-  const charlieDaoStablecoin1Balance = await getAssetBalanceByOwnerAsync(charlieDaoAddress, stablecoin1Id);
+  const charlieDaoStablecoin1Balance = await getFungibleTokenBalanceByOwnerAsync(charlieDaoAddress, stablecoin1Id);
   logJsonResult(`Stabelcoin-1 issued to Charlie Dao balance`, charlieDaoStablecoin1Balance);
 
 
@@ -795,7 +795,7 @@ async function run(api) {
   ]);
   await createNft1ByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(createNft1ByAliceDaoTx.toHex());
-  const nft1 = await getAssetAsync(nft1Id);
+  const nft1 = await getFungibleTokenAsync(nft1Id);
   logJsonResult(`NFT-1 created`, nft1);
 
 
@@ -816,7 +816,7 @@ async function run(api) {
   ]);
   await issueNft1ToAliceDaoByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(issueNft1ToAliceDaoByAliceDaoTx.toHex());
-  const aliceDaoNft1Balance = await getAssetBalanceByOwnerAsync(aliceDaoAddress, nft1Id);
+  const aliceDaoNft1Balance = await getFungibleTokenBalanceByOwnerAsync(aliceDaoAddress, nft1Id);
   logJsonResult(`NFT-1 issued to Alice Dao balance`, aliceDaoNft1Balance);
 
 
@@ -837,7 +837,7 @@ async function run(api) {
   ]);
   await transferNft1ToCharlieDaoByAliceDaoTx.signAsync(alice); // 1st approval from Alice DAO (final)
   await sendTxAndWaitAsync(transferNft1ToCharlieDaoByAliceDaoTx.toHex());
-  const charlieDaoNft1Balance = await getAssetBalanceByOwnerAsync(charlieDaoAddress, nft1Id);
+  const charlieDaoNft1Balance = await getFungibleTokenBalanceByOwnerAsync(charlieDaoAddress, nft1Id);
   logJsonResult(`NFT-1 issued to Alice Dao balance`, charlieDaoNft1Balance);
 
 
@@ -912,11 +912,11 @@ async function run(api) {
   await sendTxAndWaitAsync(investToInvestmentOpportunity1ByEveDaoTx.toHex()); // 1st approval from Eve DAO (final)
   logSuccess(`Invested to InvestmentOpportunity-1 by Eve Dao\n`);
 
-  const bobDaoNft1Balance = await getAssetBalanceByOwnerAsync(bobDaoAddress, nft1Id);
+  const bobDaoNft1Balance = await getFungibleTokenBalanceByOwnerAsync(bobDaoAddress, nft1Id);
   logJsonResult(`Invested to InvestmentOpportunity-1, NFT-1 Bob Dao balance`, bobDaoNft1Balance);
-  const eveDaoNft1Balance = await getAssetBalanceByOwnerAsync(eveDaoAddress, nft1Id);
+  const eveDaoNft1Balance = await getFungibleTokenBalanceByOwnerAsync(eveDaoAddress, nft1Id);
   logJsonResult(`Invested to InvestmentOpportunity-1, NFT-1 Eve Dao balance`, eveDaoNft1Balance);
-  const aliceDaoNft1Balance2 = await getAssetBalanceByOwnerAsync(aliceDaoAddress, nft1Id);
+  const aliceDaoNft1Balance2 = await getFungibleTokenBalanceByOwnerAsync(aliceDaoAddress, nft1Id);
   logJsonResult(`NFT-1 Alice Dao balance after finalized InvestmentOpportunity-1`, aliceDaoNft1Balance2);
 
 

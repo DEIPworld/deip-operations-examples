@@ -239,7 +239,7 @@ export default (config) => {
       const defautFaucetAsset = defautFaucetAssets[i];
       const { id: assetId, symbol, precision } = defautFaucetAsset;
 
-      const existingAsset = await rpc.getAssetAsync(assetId);
+      const existingAsset = await rpc.getFungibleTokenAsync(assetId);
       if (existingAsset) {
         assets.push(existingAsset);
         continue;
@@ -274,7 +274,7 @@ export default (config) => {
 
       const createAndIssueAssetByFaucetDaoTx = await createAndIssueAssetTx.signAsync(faucetSeed, api);
       await sendTxAndWaitAsync(createAndIssueAssetByFaucetDaoTx);
-      const asset = await rpc.getAssetAsync(assetId);
+      const asset = await rpc.getFungibleTokenAsync(assetId);
       assets.push(asset);
       logJsonResult(`${symbol} asset created and issued to ${faucetDaoId} DAO`, asset);
     }
