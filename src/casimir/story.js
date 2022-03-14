@@ -1035,7 +1035,7 @@ async function run() {
 
   const createNft2ByTreasuryDaoTx = await createNft2Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(createNft2ByTreasuryDaoTx);
-  const nft2 = await rpc.getNonFungibleTokenAsync(nft2Id);
+  const nft2 = await rpc.getNonFungibleTokenClassAsync(nft2Id);
   logJsonResult(`NFT-2 created`, nft2);
 
 
