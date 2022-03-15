@@ -1076,7 +1076,7 @@ async function run() {
     });
   const issueNft2ToAliceDaoByAliceDaoTx = await issueNft2ToAliceDaoTx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(issueNft2ToAliceDaoByAliceDaoTx);
-  const aliceDaoNft2Balance = await rpc.getNonFungibleTokenClassInstancesAsync(aliceDaoId, nft2Id);
+  const aliceDaoNft2Balance = await rpc.getNonFungibleTokenClassInstancesByOwnerAsync(aliceDaoId, nft2Id);
   logJsonResult(`NFT-2 issued to Alice Dao balance`, aliceDaoNft2Balance);
 
 
@@ -1094,9 +1094,60 @@ async function run() {
     });
   const issueNft2ToBobDaoByAliceDaoTx = await issueNft2ToBobDaoTx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
   await sendTxAndWaitAsync(issueNft2ToBobDaoByAliceDaoTx);
-  const bobDaoNft2Balance = await rpc.getNonFungibleTokenClassInstancesAsync(bobDaoId, nft2Id);
+  const bobDaoNft2Balance = await rpc.getNonFungibleTokenClassInstancesByOwnerAsync(bobDaoId, nft2Id);
   logJsonResult(`NFT-2 issued to Bob Dao balance`, bobDaoNft2Balance);
 
+
+  /**
+   *  Create NFT-3 for Project-1 by Alice Dao
+   */
+  logInfo(`Creating NFT-3 ...`);
+  const nft3Id = genRipemd160Hash(randomAsHex(20));
+  const createNft3Tx = await chainTxBuilder.begin()
+    .then((txBuilder) => {
+      const createNft3Cmd = new CreateNonFungibleTokenCmd({
+        entityId: nft3Id,
+        issuer: aliceDaoId,
+        name: "Non-Fungible Token 3 of Project-1",
+        symbol: "NFT3",
+        description: "",
+        projectTokenSettings: {
+          projectId: project1Id,
+          teamId: aliceDaoId
+        }
+      });
+      txBuilder.addCmd(createNft3Cmd);
+      return txBuilder.end();
+    });
+
+  const createNft3ByTreasuryDaoTx = await createNft3Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
+  await sendTxAndWaitAsync(createNft3ByTreasuryDaoTx);
+  const nft3 = await rpc.getNonFungibleTokenClassAsync(nft3Id);
+  logJsonResult(`NFT-3 created`, nft3);
+
+
+  /**
+   *  Issue some NFT-3 to Alice Dao balance by Alice Dao
+   */
+  logInfo(`Issuing some NFT-3 to Alice Dao ...`);
+  const issueNft3ToAliceDaoTx = await chainTxBuilder.begin()
+    .then((txBuilder) => {
+      const issueNft3ToAliceDaoCmd = new IssueNonFungibleTokenCmd({
+        issuer: aliceDaoId,
+        classId: nft3Id,
+        instanceId: 1,
+        recipient: aliceDaoId,
+      });
+      txBuilder.addCmd(issueNft3ToAliceDaoCmd);
+      return txBuilder.end();
+    });
+  const issueNft3ToAliceDaoByAliceDaoTx = await issueNft3ToAliceDaoTx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
+  await sendTxAndWaitAsync(issueNft3ToAliceDaoByAliceDaoTx);
+  const aliceDaoNft3Balance = await rpc.getNonFungibleTokenClassInstancesByOwnerAsync(aliceDaoId, nft3Id);
+  logJsonResult(`NFT-3 issued to Alice Dao balance`, aliceDaoNft3Balance);
+
+  const aliceDaoNftBalances = await rpc.getNonFungibleTokenClassesInstancesByOwnerAsync(aliceDaoId);
+  logJsonResult(`NFT collection of Alice Dao`, aliceDaoNftBalances);
 
 
   /**
