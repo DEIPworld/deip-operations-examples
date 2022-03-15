@@ -264,7 +264,10 @@ export default (config) => {
 
           const issueFungibleTokenCmd = new IssueFungibleTokenCmd({
             issuer: faucetDaoId,
-            asset: { "id": assetId, symbol, precision, "amount": maxSupply },
+            tokenId: assetId,
+            symbol,
+            precision,
+            amount: maxSupply,
             recipient: faucetDaoId
           });
           txBuilder.addCmd(issueFungibleTokenCmd);
@@ -307,14 +310,19 @@ export default (config) => {
     const chainService = await getChainService();
     const chainTxBuilder = chainService.getChainTxBuilder();
     const api = chainService.getChainNodeClient();
-    const { username: faucetDaoId, wif: faucetSeed } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
+    const DEIP_APPCHAIN_FAUCET_ACCOUNT = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
+    const DEIP_APPCHAIN_CORE_ASSET = config.DEIP_APPCHAIN_CORE_ASSET;
+    const { username: faucetDaoId, wif: faucetSeed } = DEIP_APPCHAIN_FAUCET_ACCOUNT;
 
     const fundDaoTx = await chainTxBuilder.begin({ ignorePortalSig: true })
       .then((txBuilder) => {
         const transferAssetCmd = new TransferAssetCmd({
           from: faucetDaoId,
           to: daoIdOrPubKey,
-          asset: { ...config.DEIP_APPCHAIN_CORE_ASSET, amount }
+          tokenId: DEIP_APPCHAIN_CORE_ASSET.id,
+          symbol: DEIP_APPCHAIN_CORE_ASSET.symbol,
+          precision: DEIP_APPCHAIN_CORE_ASSET.precision,
+          amount: amount
         });
 
         txBuilder.addCmd(transferAssetCmd);
