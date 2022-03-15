@@ -2,7 +2,7 @@ import config from './../config';
 import { logInfo, logSuccess, logError, logJsonResult } from './../log';
 import { randomAsHex } from '@polkadot/util-crypto';
 import { genSha256Hash, genRipemd160Hash } from '@deip/toolbox';
-import { APP_PROPOSAL, CONTRACT_AGREEMENT_TYPE, PROJECT_CONTENT_TYPES } from '@deip/constants';
+import { APP_PROPOSAL, CONTRACT_AGREEMENT_TYPE, PROJECT_CONTENT_TYPES, ASSET_TYPE } from '@deip/constants';
 import {
   waitAsync, 
   getDefaultDomain
@@ -1020,14 +1020,11 @@ async function run() {
         issuer: aliceDaoId,
         name: "Non-Fungible Token 2 of Project-1",
         symbol: "NFT2",
-        precision: 2,
         description: "",
-        minBalance: 1,
         projectTokenSettings: {
           projectId: project1Id,
-          teamId: aliceDaoId // TODO: infer 'teamId' from 'projectId' for Graphene
-        },
-        maxSupply: 1000000000000000 // TODO: add 'maxSupply' for Substrate assets_pallet wrapper
+          teamId: aliceDaoId
+        }
       });
       txBuilder.addCmd(createNft2Cmd);
       return txBuilder.end();
@@ -1043,22 +1040,40 @@ async function run() {
   /**
    *  Issue some NFT-2 to Alice Dao balance by Alice Dao
    */
-  logInfo(`Issuing some NFT-1 to Alice Dao ...`);
-  const issueNft2Tx = await chainTxBuilder.begin()
+  logInfo(`Issuing some NFT-2 to Alice Dao ...`);
+  const issueNft2ToAliceDaoTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
       const issueNft2ToAliceDaoCmd = new IssueNonFungibleTokenCmd({
         issuer: aliceDaoId,
-        asset: { "id": nft2Id, "symbol": "NFT1", "precision": 2, "amount": 1, type: 2 },
+        classId: nft2Id,
+        instanceId: 1,
         recipient: aliceDaoId,
-        instanceId: 1
       });
       txBuilder.addCmd(issueNft2ToAliceDaoCmd);
       return txBuilder.end();
     });
-  const issueNft2ByAliceDaoTx = await issueNft2Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
-  await sendTxAndWaitAsync(issueNft2ByAliceDaoTx);
-  const aliceDaoNft2Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(aliceDaoId, nft2Id);
+  const issueNft2ToAliceDaoByAliceDaoTx = await issueNft2ToAliceDaoTx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
+  await sendTxAndWaitAsync(issueNft2ToAliceDaoByAliceDaoTx);
+  const aliceDaoNft2Balance = await rpc.getNonFungibleTokenClassInstancesAsync(aliceDaoId, nft2Id);
   logJsonResult(`NFT-2 issued to Alice Dao balance`, aliceDaoNft2Balance);
+
+
+  logInfo(`Issuing some NFT-2 to Bob Dao ...`);
+  const issueNft2ToBobDaoTx = await chainTxBuilder.begin()
+    .then((txBuilder) => {
+      const issueNft2ToBobDaoCmd = new IssueNonFungibleTokenCmd({
+        issuer: aliceDaoId,
+        classId: nft2Id,
+        instanceId: 2,
+        recipient: bobDaoId,
+      });
+      txBuilder.addCmd(issueNft2ToBobDaoCmd);
+      return txBuilder.end();
+    });
+  const issueNft2ToBobDaoByAliceDaoTx = await issueNft2ToBobDaoTx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
+  await sendTxAndWaitAsync(issueNft2ToBobDaoByAliceDaoTx);
+  const bobDaoNft2Balance = await rpc.getNonFungibleTokenClassInstancesAsync(bobDaoId, nft2Id);
+  logJsonResult(`NFT-2 issued to Bob Dao balance`, bobDaoNft2Balance);
 
 
 
@@ -1071,7 +1086,9 @@ async function run() {
       const nft2TransferCmd = new TransferAssetCmd({
         from: aliceDaoId,
         to: charlieDaoId,
-        asset: { "id": nft2Id, "symbol": "NFT1", "precision": 2, "amount": 1, type: 2 }
+        assetType: ASSET_TYPE.NFT,
+        classId: nft2Id,
+        instanceId: 1,
       });
 
       txBuilder.addCmd(nft2TransferCmd);
