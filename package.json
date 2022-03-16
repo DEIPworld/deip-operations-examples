@@ -20,6 +20,7 @@
     "@deip/toolbox": "1.371.0",
     "@polkadot/api": "7.10.1",
     "@polkadot/rpc-provider": "7.10.1",
+    "@polkadot/types": "7.10.1",
     "cross-fetch": "^3.1.4",
     "dotenv": "^10.0.0"
   },

@@ -3,7 +3,7 @@ import types from './types.json';
 import { ApiPromise } from '@polkadot/api/promise';
 import { HttpProvider } from '@polkadot/rpc-provider';
 import { TypeRegistry } from '@polkadot/types/create';
-import { Metadata } from '@polkadot/metadata';
+import { Metadata } from '@polkadot/types';
 import { logInfo, logSuccess, logError, logJsonResult } from './../log';
 import { keccakAsHex, randomAsHex } from '@polkadot/util-crypto';
 import { 
