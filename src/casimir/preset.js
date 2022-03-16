@@ -15,7 +15,7 @@ import {
   IssueFungibleTokenCmd,
   TransferAssetCmd,
   AddDaoMemberCmd
-} from '@deip/command-models';
+} from '@deip/commands';
 
 export default (config) => {
 

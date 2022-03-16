@@ -31,7 +31,7 @@ import {
   TransferAssetCmd,
   AddDaoMemberCmd,
   RemoveDaoMemberCmd
-} from '@deip/command-models';
+} from '@deip/commands';
 
 import PRE_SET from './preset';
 
