@@ -32,6 +32,11 @@ const substratePubKeyToAddress = (pubKey) => {
 }
 
 
+const substrateAddressToPubKey = (address) => {
+  return SubstrateChainUtils.addressToPubKey(address);
+}
+
+
 const daoIdToSubstrateAddress = (daoId, api) => {
   const address = SubstrateChainUtils.daoIdToAddress(toHexFormat(daoId), api.registry);
   return address;
@@ -43,6 +48,10 @@ const getSubstrateMultiAddress = (addresses, threshold) => {
   return multiAddress;
 }
 
+
+const isSubstrateAddress = (val) => {
+  return SubstrateChainUtils.isAddress(val);
+}
 
 const getDefaultDomain = () => {
   const defaultDomainId = `0x6225314ed224d2b25a22f01a34af16d3354d556c`;
@@ -70,6 +79,8 @@ export {
   genSeedAccount,
   daoIdToSubstrateAddress,
   substratePubKeyToAddress,
+  isSubstrateAddress,
+  substrateAddressToPubKey,
   getSubstrateMultiAddress,
   getDefaultDomain,
   toHexFormat,

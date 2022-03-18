@@ -954,7 +954,7 @@ async function run() {
    */
   logInfo(`Creating FT-1 ...`);
   const ft1Id = genRipemd160Hash(randomAsHex(20));
-  const createNft1Tx = await chainTxBuilder.begin()
+  const createFt1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
       const createNft1Cmd = new CreateFungibleTokenCmd({
         entityId: ft1Id,
@@ -974,8 +974,8 @@ async function run() {
       return txBuilder.end();
     });
 
-  const createNft1ByTreasuryDaoTx = await createNft1Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
-  await sendTxAndWaitAsync(createNft1ByTreasuryDaoTx);
+  const createFt1ByTreasuryDaoTx = await createFt1Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
+  await sendTxAndWaitAsync(createFt1ByTreasuryDaoTx);
   const nft1 = await rpc.getFungibleTokenAsync(ft1Id);
   logJsonResult(`FT-1 created`, nft1);
 
@@ -985,7 +985,7 @@ async function run() {
    *   Issue some FT-1 to Alice Dao balance by Alice Dao
    */
   logInfo(`Issuing some FT-1 to Alice Dao ...`);
-  const issueNft1Tx = await chainTxBuilder.begin()
+  const issueFt1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
       const issueNft1ToAliceDaoCmd = new IssueFungibleTokenCmd({
         issuer: aliceDaoId,
@@ -998,10 +998,10 @@ async function run() {
       txBuilder.addCmd(issueNft1ToAliceDaoCmd);
       return txBuilder.end();
     });
-  const issueNft1ByAliceDaoTx = await issueNft1Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
-  await sendTxAndWaitAsync(issueNft1ByAliceDaoTx);
-  const aliceDaoNft1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(aliceDaoId, ft1Id);
-  logJsonResult(`FT-1 issued to Alice Dao balance`, aliceDaoNft1Balance);
+  const issueFt1ByAliceDaoTx = await issueFt1Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
+  await sendTxAndWaitAsync(issueFt1ByAliceDaoTx);
+  const aliceDaoFt1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(aliceDaoId, ft1Id);
+  logJsonResult(`FT-1 issued to Alice Dao balance`, aliceDaoFt1Balance);
 
 
 
@@ -1009,9 +1009,9 @@ async function run() {
    *   Transfer some FT-1 to Charlie Dao balance by Alice Dao
    */
   logInfo(`Transferring some FT-1 to Charlie Dao ...`);
-  const transferNft1Tx = await chainTxBuilder.begin()
+  const transferFt1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const nft1TransferCmd = new TransferAssetCmd({
+      const ft1TransferCmd = new TransferAssetCmd({
         from: aliceDaoId,
         to: charlieDaoId,
         tokenId: ft1Id,
@@ -1020,14 +1020,14 @@ async function run() {
         amount: 1000
       });
 
-      txBuilder.addCmd(nft1TransferCmd);
+      txBuilder.addCmd(ft1TransferCmd);
       return txBuilder.end();
     });
 
-  const transferNft1ByAliceDaoTx = await transferNft1Tx.signAsync(alice.getPrivKey(), api);
-  await sendTxAndWaitAsync(transferNft1ByAliceDaoTx);
-  const charlieDaoNft1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(charlieDaoId, ft1Id);
-  logJsonResult(`FT-1 transfered to Charlie Dao balance`, charlieDaoNft1Balance);
+  const transferFt1ByAliceDaoTx = await transferFt1Tx.signAsync(alice.getPrivKey(), api);
+  await sendTxAndWaitAsync(transferFt1ByAliceDaoTx);
+  const charlieDaoFt1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(charlieDaoId, ft1Id);
+  logJsonResult(`FT-1 transfered to Charlie Dao balance`, charlieDaoFt1Balance);
 
 
   /**
@@ -1179,7 +1179,7 @@ async function run() {
    */
   logInfo(`Creating InvestmentOpportunity-1 by Alice Dao ...`);
   const invstOpp1Id = genRipemd160Hash(randomAsHex(20));
-  const invstOpp1StartsInMillisecs = 5000;
+  const invstOpp1StartsInMillisecs = 10000;
   const createInvestmentOpportunityTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
       const createInvestmentOpportunityCmd = new CreateInvestmentOpportunityCmd({
@@ -1245,12 +1245,12 @@ async function run() {
   await sendTxAndWaitAsync(investToInvestmentOpportunity1ByEveDaoTx);
   logSuccess(`Invested to InvestmentOpportunity-1 by Eve Dao\n`);
 
-  const bobDaoNft1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(bobDaoId, ft1Id);
-  logJsonResult(`Invested to InvestmentOpportunity-1, FT-1 Bob Dao balance`, bobDaoNft1Balance);
-  const eveDaoNft1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(eveDaoId, ft1Id);
-  logJsonResult(`Invested to InvestmentOpportunity-1, FT-1 Eve Dao balance`, eveDaoNft1Balance);
-  const aliceDaoNft1Balance2 = await rpc.getFungibleTokenBalanceByOwnerAsync(aliceDaoId, ft1Id);
-  logJsonResult(`FT-1 Alice Dao balance after finalized InvestmentOpportunity-1`, aliceDaoNft1Balance2);
+  const bobDaoFt1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(bobDaoId, ft1Id);
+  logJsonResult(`Invested to InvestmentOpportunity-1, FT-1 Bob Dao balance`, bobDaoFt1Balance);
+  const eveDaoFt1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(eveDaoId, ft1Id);
+  logJsonResult(`Invested to InvestmentOpportunity-1, FT-1 Eve Dao balance`, eveDaoFt1Balance);
+  const aliceDaoFt1Balance2 = await rpc.getFungibleTokenBalanceByOwnerAsync(aliceDaoId, ft1Id);
+  logJsonResult(`FT-1 Alice Dao balance after finalized InvestmentOpportunity-1`, aliceDaoFt1Balance2);
 
 
 
@@ -1259,7 +1259,7 @@ async function run() {
    */
   logInfo(`Initiate a LicenseAgreement-1 between Alice Dao and Charlie Dao parties ...`);
   const licenseAgreement1Id = genRipemd160Hash(randomAsHex(20));
-  const licenseAgreement1SigningActivatesInMillisecs = 5000;
+  const licenseAgreement1SigningActivatesInMillisecs = 10000;
   const createContractAgreement1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
       const createContractAgreementCmd = new CreateContractAgreementCmd({
