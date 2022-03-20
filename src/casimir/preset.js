@@ -6,11 +6,11 @@ import { u8aToHex } from '@polkadot/util';
 import {
   daoIdToSubstrateAddress,
   getFaucetSeedAccount,
-  waitAsync,
+  waitAsync
 } from './../utils';
 import {
   CreateDaoCmd,
-  // CreatePortalCmd,
+  CreatePortalCmd,
   CreateFungibleTokenCmd,
   IssueFungibleTokenCmd,
   TransferAssetCmd,
@@ -26,7 +26,7 @@ export default (config) => {
   async function setupTenantPortal() {
     logInfo(`Setting up Tenant Portal ...`);
     await createFaucetDao();
-    await createTenantDao();
+    await createPortalWithTenantDao();
     await createDefaultFaucetAssets();
     logInfo(`Tenant Portal is set.`);
   }
@@ -38,7 +38,7 @@ export default (config) => {
       DEIP_FULL_NODE_URL: config.DEIP_APPCHAIN_NODE_URL,
       CORE_ASSET: config.DEIP_APPCHAIN_CORE_ASSET,
       CHAIN_ID: config.DEIP_CHAIN_ID,
-      TENANT: config.DEIP_PORTAL_TENANT.id
+      PORTAL_ID: config.DEIP_TENANT.id
     });
     return chainService;
   }
@@ -97,13 +97,13 @@ export default (config) => {
   }
 
 
-  async function createTenantDao() {
+  async function createPortalWithTenantDao() {
     const chainService = await getChainService();
     const chainTxBuilder = chainService.getChainTxBuilder();
     const api = chainService.getChainNodeClient();
     const rpc = chainService.getChainRpc();
-    const { id: tenantDaoId, privKey: tenantPrivKey, members } = config.DEIP_PORTAL_TENANT;
-    const { address: portalVerifier } = config.DEIP_PORTAL_VERIFIER;
+    const { id: tenantDaoId, privKey: tenantPrivKey, members } = config.DEIP_TENANT;
+    const { pubKey: verificationPubKey } = config.DEIP_TENANT_PORTAL;
     const tenantSeed = await chainService.generateChainSeedAccount({ username: tenantDaoId, privateKey: tenantPrivKey });
 
     const existingTenantDao = await rpc.getAccountAsync(tenantDaoId);
@@ -137,27 +137,26 @@ export default (config) => {
       const createdTenantDao = await rpc.getAccountAsync(tenantDaoId);
       logJsonResult(`Tenant DAO created`, createdTenantDao);
 
-      // logInfo(`Creating Portal ...`);
-      // const createTenantPortalTx = await chainTxBuilder.begin({ ignorePortalSig: true })
-      //   .then((txBuilder) => {
-      //     const createPortalCmd = new CreatePortalCmd({
-      //       owner: tenantDaoId,
-      //       delegate: portalVerifier,
-      //       metadata: genSha256Hash({ "description": "DAO delegate" })
-      //     })
-      //     txBuilder.addCmd(createPortalCmd);
-      //     return txBuilder.end();
-      //   });
+      logInfo(`Creating Tenant Portal ...`);
+      const createTenantPortalTx = await chainTxBuilder.begin({ ignorePortalSig: true })
+        .then((txBuilder) => {
+          const createPortalCmd = new CreatePortalCmd({
+            owner: tenantDaoId,
+            verificationPubKey: verificationPubKey,
+            metadata: genSha256Hash({ "description": "DAO delegate" })
+          })
+          txBuilder.addCmd(createPortalCmd);
+          return txBuilder.end();
+        });
 
-      // const createTenantPortalByTenantTx = await createTenantPortalTx.signAsync(getDaoCreatorPrivKey(tenantSeed), api);
-      // await sendTxAndWaitAsync(createTenantPortalByTenantTx);
+      const createTenantPortalByTenantTx = await createTenantPortalTx.signAsync(getDaoCreatorPrivKey(tenantSeed), api);
+      await sendTxAndWaitAsync(createTenantPortalByTenantTx);
+      const portal = await rpc.getPortalAsync(tenantDaoId);
+      logJsonResult(`Tenant Portal created`, portal);
 
-      // const portal = await api.query.deipPortal.portalRepository(`0x${tenantDaoId}`);
-      // logJsonResult(`Portal created`, portal);
-
-      // logInfo(`Funding Portal ...`);
-      // await fundAddressFromFaucet(portalVerifier, DAO_SEED_FUNDING_AMOUNT);
-      // logInfo(`End funding Portal`);
+      logInfo(`Funding Tenant Portal ...`);
+      await fundAddressFromFaucet(verificationPubKey, DAO_SEED_FUNDING_AMOUNT);
+      logInfo(`End funding Tenant Portal`);
 
     }
 
@@ -339,16 +338,16 @@ export default (config) => {
     const rpc = chainService.getChainRpc();
     const api = chainService.getChainNodeClient();
 
-    const { address: portalVerifier, privKey: portalVerifierPrivKey } = config.DEIP_PORTAL_VERIFIER;
+    const { pubKey: verificationPubKey, privKey: verificationPrivKey } = config.DEIP_TENANT_PORTAL;
     const { tx } = finalizedTx.getPayload();
 
-    // const verifiedTxPromise = tx.isOnBehalfPortal()
-    //   ? tx.verifyByPortalAsync({ verifier: portalVerifier, verificationKey: portalVerifierPrivKey }, api)
-    //   : Promise.resolve(tx.getSignedRawTx());
-    // const verifiedTx = await verifiedTxPromise;
-    // await rpc.sendTxAsync(verifiedTx);
+    const verifiedTxPromise = tx.isOnBehalfPortal()
+      ? tx.verifyByPortalAsync({ verificationPubKey, verificationPrivKey }, api)
+      : Promise.resolve(tx.getSignedRawTx());
 
-    await tx.sendAsync(rpc);
+    const verifiedTx = await verifiedTxPromise;
+    await rpc.sendTxAsync(verifiedTx);
+
     await waitAsync(timeout);
   }
 
