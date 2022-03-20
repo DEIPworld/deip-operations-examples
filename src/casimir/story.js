@@ -36,14 +36,12 @@ import {
 import PRE_SET from './preset';
 
 const { 
-  setupTenantPortal,
+  setup,
   getChainService,
   getDaoCreator,
   getDaoCreatorPrivKey,
   fundAddressFromFaucet,
-  sendTxAndWaitAsync,
-  DAO_SEED_FUNDING_AMOUNT,
-  DAO_FUNDING_AMOUNT
+  sendTxAndWaitAsync
 } = PRE_SET(config);
 
 
@@ -53,8 +51,10 @@ async function run() {
   const chainTxBuilder = chainService.getChainTxBuilder();
   const api = chainService.getChainNodeClient();
   const rpc = chainService.getChainRpc();
+  
   const DEIP_APPCHAIN_CORE_ASSET = config.DEIP_APPCHAIN_CORE_ASSET;
-
+  const DAO_SEED_FUNDING_AMOUNT = config.DAO_SEED_FUNDING_AMOUNT
+  const DAO_FUNDING_AMOUNT = config.DAO_FUNDING_AMOUNT;
 
   /**
    * Create Alice DAO actor
@@ -1331,7 +1331,7 @@ async function run() {
 }
 
 
-setupTenantPortal()
+setup()
   .then(() => {
     logInfo('\nRunning Casimir tx-builder...\n');
     return run();
