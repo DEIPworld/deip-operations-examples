@@ -53,7 +53,7 @@ async function sendTxAndWaitAsync(rawTx, timeout = config.DEIP_APPCHAIN_MILLISEC
 
 
 async function fundAddressFromFaucet(addrees, api) {
-  const tx = api.tx.balances.transfer(addrees, config.DEIP_APPCHAIN_FAUCET_ACCOUNT.fundingAmount);
+  const tx = api.tx.balances.transfer(addrees, config.DAO_SEED_FUNDING_AMOUNT);
   await tx.signAsync(getFaucetSeedAccount());
   await sendTxAndWaitAsync(tx.toHex());
 }
