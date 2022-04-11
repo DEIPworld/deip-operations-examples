@@ -1,4 +1,4 @@
-import { logInfo, logSuccess, logError, logJsonResult } from './../log';
+import { logInfo, logSuccess, logError, logJsonResult } from '../log';
 import { genSha256Hash, genRipemd160Hash } from '@deip/toolbox';
 import { PROTOCOL_CHAIN } from '@deip/constants';
 import { ChainService } from '@deip/chain-service';
@@ -8,15 +8,15 @@ import {
   daoIdToSubstrateAddress,
   getFaucetSeedAccount,
   waitAsync
-} from './../utils';
+} from '../utils';
 import {
   CreateDaoCmd,
   CreatePortalCmd,
   CreateFungibleTokenCmd,
   IssueFungibleTokenCmd,
-  TransferFungibleTokenCmd,
   AddDaoMemberCmd
 } from '@deip/commands';
+import { TransferFungibleTokenCmd } from "../../../casimir-frontend/packages/casimir/models/command";
 
 export default (config) => {
 
@@ -93,6 +93,7 @@ export default (config) => {
     }
 
     await createFaucetStablecoins();
+
   }
 
 
@@ -218,7 +219,7 @@ export default (config) => {
 
     }
 
-    // await createPortalReadModelsStorage();
+    await createPortalReadModelsStorage();
 
     const updatedTenantDao = await rpc.getAccountAsync(tenantDaoId);
     logJsonResult(`Tenant DAO finalized`, updatedTenantDao);
@@ -285,16 +286,15 @@ export default (config) => {
     return assets;
   }
 
+
   async function createPortalReadModelsStorage() {
-    const mongoTools1 = new MongoTools();
-    console.log("MONGOTOOLS_1", mongoTools1);
     if (config.TENANT_PORTAL_READ_MODELS_STORAGE) {
       logInfo(`Creating Read Models storage ...`);
       const mongoTools = new MongoTools();
       const { uri, dumpFilePath } = config.TENANT_PORTAL_READ_MODELS_STORAGE;
       const mongorestorePromise = mongoTools.mongorestore({
         uri: uri,
-        dumpFile: dumpFilePath        
+        dumpFile: dumpFilePath
       })
         .then((success) => {
           console.info("success", success.message);
@@ -311,7 +311,7 @@ export default (config) => {
     }
   }
 
-  
+
   function getDaoCreator(seed) {
     const { username: faucetDaoId } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
     if (PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN) {

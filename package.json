@@ -8,6 +8,8 @@
     "build": "npm run clean && babel ./src --out-dir=./dist --config-file=./babel.config.js --copy-files --include-dotfiles",
     "start:substrate-rpc": "npm run build && node dist/substrate-rpc/index.js",
     "start:casimir": "npm run build && node dist/casimir/index.js",
+    "start:casimir-nft": "npm run build && node dist/casimir-nowar-nft-flow/index.js",
+    "start:generate-portal-config": "npm run build && node dist/generate-portal-conifg/index.js",
     "checkUpdateDeip": "npx ncu \"/^@deip\\/.*$/\"",
     "linkModules": "node ./scripts/linkDevModules.js",
     "updateDeip": "npx ncu \"/^@deip\\/.*$/\" -u"
@@ -15,12 +17,13 @@
   "author": "DEIP",
   "license": "ISC",
   "dependencies": {
-    "@deip/chain-service": "1.374.0",
-    "@deip/commands": "1.373.0",
-    "@deip/toolbox": "1.371.0",
+    "@deip/chain-service": "1.375.1",
+    "@deip/commands": "1.375.1",
+    "@deip/toolbox": "1.375.1",
     "@polkadot/api": "7.10.1",
     "@polkadot/rpc-provider": "7.10.1",
     "@polkadot/types": "7.10.1",
+    "@polkadot/util-crypto": "^9.0.1",
     "cross-fetch": "^3.1.4",
     "dotenv": "^10.0.0",
     "node-mongotools": "^1.2.2"
@@ -36,6 +39,7 @@
     "@babel/plugin-transform-runtime": "^7.16.4",
     "@babel/preset-env": "^7.16.0",
     "@babel/register": "^7.16.0",
+    "fs-extra": "^10.0.1",
     "glob": "^7.2.0",
     "inquirer": "^8.2.0",
     "npm-check-updates": "^12.0.2",
