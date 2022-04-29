@@ -22,12 +22,17 @@ export default (config) => {
 
   async function setup() {
     logInfo(`Setting up Faucet ...`);
-    await createFaucet();
+    const faucet = await createFaucet();
     logInfo(`Faucet is set`);
 
     logInfo(`Setting up Tenant Portal ...`);
-    await createTenantDaoWithPortal();
+    const tenant = await createTenantDaoWithPortal();
     logInfo(`Tenant Portal is set`);
+
+    return {
+      faucet,
+      tenant
+    }
   }
 
 
@@ -106,6 +111,7 @@ export default (config) => {
     const tenantSeed = await chainService.generateChainSeedAccount({ username: tenantDaoId, privateKey: tenantPrivKey });
 
     const existingTenantDao = await rpc.getAccountAsync(tenantDaoId);
+
     if (!existingTenantDao) {
       logInfo(`Creating Tenant DAO ...`);
       await fundAddressFromFaucet(tenantSeed.getPubKey(), config.DAO_SEED_FUNDING_AMOUNT);
@@ -156,7 +162,6 @@ export default (config) => {
       logInfo(`Funding Tenant Portal ...`);
       await fundAddressFromFaucet(verificationPubKey, config.DAO_SEED_FUNDING_AMOUNT);
       logInfo(`End funding Tenant Portal`);
-
     }
 
     const tenantDao = await rpc.getAccountAsync(tenantDaoId);
@@ -218,11 +223,12 @@ export default (config) => {
 
     }
 
-    // await createPortalReadModelsStorage();
-
     const updatedTenantDao = await rpc.getAccountAsync(tenantDaoId);
     logJsonResult(`Tenant DAO finalized`, updatedTenantDao);
-    return updatedTenantDao;
+    return {
+      tenantDao: updatedTenantDao,
+      tenantDaoMembers: members
+    };
   }
 
 
@@ -285,33 +291,6 @@ export default (config) => {
     return assets;
   }
 
-  async function createPortalReadModelsStorage() {
-    const mongoTools1 = new MongoTools();
-    console.log("MONGOTOOLS_1", mongoTools1);
-    if (config.TENANT_PORTAL_READ_MODELS_STORAGE) {
-      logInfo(`Creating Read Models storage ...`);
-      const mongoTools = new MongoTools();
-      const { uri, dumpFilePath } = config.TENANT_PORTAL_READ_MODELS_STORAGE;
-      const mongorestorePromise = mongoTools.mongorestore({
-        uri: uri,
-        dumpFile: dumpFilePath        
-      })
-        .then((success) => {
-          console.info("success", success.message);
-          if (success.stderr) {
-            console.info("stderr:\n", success.stderr); // mongorestore binary write details on stderr
-          }
-        })
-        .catch((err) => console.error("error", err));
-
-      await mongorestorePromise;
-      logInfo(`Read Models storage created`);
-    } else {
-      logInfo(`Read Models storage is not specified`);
-    }
-  }
-
-  
   function getDaoCreator(seed) {
     const { username: faucetDaoId } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
     if (PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN) {

@@ -32,9 +32,30 @@ const config = {
   TENANT: parseJsonEnvVar('TENANT'),
   TENANT_PORTAL: parseJsonEnvVar('TENANT_PORTAL'),
   TENANT_PORTAL_READ_MODELS_STORAGE: parseJsonEnvVar('TENANT_PORTAL_READ_MODELS_STORAGE', null),
-  
+
   DAO_SEED_FUNDING_AMOUNT: process.env.DAO_SEED_FUNDING_AMOUNT || "0",
-  DAO_FUNDING_AMOUNT: process.env.DAO_FUNDING_AMOUNT || "0"
+  DAO_FUNDING_AMOUNT: process.env.DAO_FUNDING_AMOUNT || "0",
+
+  DB_DRIVER: "mongodb",
+  TENANT_DUMP_CONFIG: {
+    "portal": {
+      "_id": "2222222222222222222222222222222222222222",
+      "name": "Vedai"
+    },
+    "userDao": {
+      "_id": "f4570242526c40994282dc8f6590421a1575a7dc"
+    },
+  },
+  TENANT_GENERATE_PORTAL_CONFIG: {
+    "portal": {
+      "_id": "0000000000000000000000000000000000000001",
+      "name": "Nowar-testnet",
+      "shortName": "Nowar testnet",
+      "description": "Nowar description",
+      "serverUrl": "https://nowar.deip.world",
+      "email": "nowartestnet@deip.world",
+    },
+  }
 };
 
 module.exports = config;
