@@ -109,10 +109,10 @@ async function run() {
   logJsonResult(`Bob DAO created`, bobDao);
 
 
-    /**
-   * Create Moderator multisig DAO actor with a threshold equal to 1 signature
-   * MODERATORS DAO
-   */
+  /**
+ * Create Moderator multisig DAO actor with a threshold equal to 1 signature
+ * MODERATORS DAO
+ */
   logInfo(`Creating Moderator multisig DAO ...`);
   const moderatorDaoId = genRipemd160Hash(randomAsHex(20));
   const createModeratorDaoTx = await chainTxBuilder.begin()
@@ -158,7 +158,7 @@ async function run() {
           owner: {
             auths: [
               { key: creator.getPubKey(), weight: 1 },
-              {name: moderatorDaoId, weight: 1}
+              { name: moderatorDaoId, weight: 1 }
             ],
             weight: 1
           }
@@ -177,6 +177,7 @@ async function run() {
   await sendTxAndWaitAsync(createCreatorDaoByCreatorTx);
 
   await fundAddressFromFaucet(creatorDaoId, DAO_FUNDING_AMOUNT);
+  // await fundAddressFromFaucet(creatorDaoId, 1);
   const creatorDao = await rpc.getAccountAsync(creatorDaoId);
   logJsonResult(`Creator DAO created`, creatorDao);
 
@@ -195,7 +196,10 @@ async function run() {
         entityId: buyerDaoId,
         authority: {
           owner: {
-            auths: [{ key: buyer.getPubKey(), weight: 1 }],
+            auths: [
+              { key: buyer.getPubKey(), weight: 1 },
+              { name: moderatorDaoId, weight: 1 }
+            ],
             weight: 1
           }
         },
@@ -241,6 +245,9 @@ async function run() {
   const project1 = await rpc.getProjectAsync(project1Id);
   logJsonResult(`Creator DAO Project-1 created`, project1);
 
+  const creatorDaoCoreAssetBalance = await rpc.getFungibleTokenBalanceByOwnerAsync(creatorDaoId, DEIP_APPCHAIN_CORE_ASSET.id);
+  logJsonResult(`Creator Dao CoreAsset balance after CreateProjectCmd`, creatorDaoCoreAssetBalance);
+
   // /**
   //  * Creating lazy-mint Proposal-1 of Project-1 on behalf of Buyer DAO actor
   //  */
@@ -276,7 +283,7 @@ async function run() {
 
       const createNft1Cmd = new CreateNonFungibleTokenCmd({
         entityId: nft1Id,
-        issuer: moderatorDaoId,
+        issuer: creatorDaoId,
         admin: creatorDaoId,
         name: "Non-Fungible Token 1 of Project-1",
         symbol: "NFT1",
@@ -288,10 +295,10 @@ async function run() {
       });
 
       const issueNft1ToBuyerDaoCmd = new IssueNonFungibleTokenCmd({
-        issuer: moderatorDaoId,
+        issuer: creatorDaoId,
+        recipient: buyerDaoId,
         classId: nft1Id,
         instanceId: nft1InstanceId,
-        recipient: buyerDaoId,
       });
 
       const proposal1Batch = [
@@ -323,12 +330,27 @@ async function run() {
   const proposal1 = await rpc.getProposalAsync(proposal1Id);
   logJsonResult(`Buyer DAO Proposal-1 created`, proposal1);
 
-  // /**
-  //  * Approve Proposal-1 created by Buyer Dao actor on behalf of all required actors:
-  //  * Buyer Dao actor
-  //  * Alice Dao actor on behalf of Moderator multisig Dao actor
-  //  * Alice Dao actor on behalf of Creator multisig Dao actor
-  //  */
+  /**
+   * Approve Proposal-1 created by Buyer Dao actor on behalf of all required actors:
+   * Buyer Dao actor
+   * Alice Dao actor on behalf of Moderator multisig Dao actor
+   * Alice Dao actor on behalf of Creator multisig Dao actor
+   */
+  logInfo(`Deciding on Buyer DAO Proposal-1, Alice DAO approves Proposal-1 on behalf of Moderators multisign DAO on behalf of Creator multisign DAO ...`);
+  // Moderators Dao approves Proposal-1
+  const decideOnProposal1ByCreatorDaoTx = await chainTxBuilder.begin()
+    .then((txBuilder) => {
+      const acceptProposalCmd = new AcceptProposalCmd({
+        entityId: proposal1Id,
+        account: creatorDaoId,
+        batchWeight: proposal1BatchWeight,
+      });
+      txBuilder.addCmd(acceptProposalCmd);
+      return txBuilder.end();
+    });
+
+  const creatorDaoCoreAssetBalance1 = await rpc.getFungibleTokenBalanceByOwnerAsync(creatorDaoId, DEIP_APPCHAIN_CORE_ASSET.id);
+  logJsonResult(`Creator Dao CoreAsset balance 1 after accept buyer proposal`, creatorDaoCoreAssetBalance1);
 
   logInfo(`Deciding on Buyer DAO Proposal-1, Buyer DAO approves Proposal-1 ...`);
   // Buyer Dao approves Proposal-1
@@ -346,44 +368,20 @@ async function run() {
   const proposal1SignedByBuyerDaoTx = await decideOnProposal1ByBuyerDaoTx.signAsync(buyer.getPrivKey(), api); // 1st approval from Creator DAO (final)
   await sendTxAndWaitAsync(proposal1SignedByBuyerDaoTx);
 
+  const creatorDaoCoreAssetBalance2 = await rpc.getFungibleTokenBalanceByOwnerAsync(creatorDaoId, DEIP_APPCHAIN_CORE_ASSET.id);
+  logJsonResult(`Creator Dao CoreAsset balance 2 after proposal execution`, creatorDaoCoreAssetBalance2);
 
-  logInfo(`Deciding on Buyer DAO Proposal-1, Alice DAO approves Proposal-1 on behalf of Moderators multisign DAO ...`);
-  // Moderators Dao approves Proposal-1
-  const decideOnProposal1ByModedatorsDaoTx = await chainTxBuilder.begin()
-    .then((txBuilder) => {
-      const acceptProposalCmd = new AcceptProposalCmd({
-        entityId: proposal1Id,
-        account: moderatorDaoId,
-        batchWeight: proposal1BatchWeight,
-      });
-      txBuilder.addCmd(acceptProposalCmd);
-      return txBuilder.end();
-    });
+  const buyerDaoCoreAssetBalance2 = await rpc.getFungibleTokenBalanceByOwnerAsync(buyerDaoId, DEIP_APPCHAIN_CORE_ASSET.id);
+  logJsonResult(`Buyer Dao CoreAsset balance 2 after proposal execution`, buyerDaoCoreAssetBalance2);
 
-  const proposal1SignedByModeratorsDaoTx = await decideOnProposal1ByModedatorsDaoTx.signAsync(alice.getPrivKey(), api); // 2st approval from Alice DAO on behalf of Moderators multisig DAO
-  await sendTxAndWaitAsync(proposal1SignedByModeratorsDaoTx);
-  
-
-  logInfo(`Deciding on Buyer DAO Proposal-1, Alice DAO approves Proposal-1 on behalf of Moderators multisign DAO on behalf of Creator multisign DAO ...`);
-  // Moderators Dao approves Proposal-1
-  const decideOnProposal1ByCreatorDaoTx = await chainTxBuilder.begin()
-    .then((txBuilder) => {
-      const acceptProposalCmd = new AcceptProposalCmd({
-        entityId: proposal1Id,
-        account: creatorDaoId,
-        batchWeight: proposal1BatchWeight,
-      });
-      txBuilder.addCmd(acceptProposalCmd);
-      return txBuilder.end();
-    });
-
-  const proposal1SignedByCreatorDaoTx = await decideOnProposal1ByCreatorDaoTx.signAsync(alice.getPrivKey(), api); // 3st approval from Alice DAO on behalf of Moderators multisig DAO on behalf of Creator multisign DAO
+  const proposal1SignedByCreatorDaoTx = await decideOnProposal1ByCreatorDaoTx.signAsync(alice.getPrivKey(), api); // 2st approval from Alice DAO on behalf of Moderators multisig DAO on behalf of Creator multisign DAO
   await sendTxAndWaitAsync(proposal1SignedByCreatorDaoTx);
 
 
   const moderatorDaoNft1BalanceAfterAllRequiredApprovals = await rpc.getNonFungibleTokenClassInstancesByOwnerAsync(moderatorDaoId, nft1Id);
   const creatorBobDaoNft1BalanceAfterAllRequiredApprovals = await rpc.getNonFungibleTokenClassInstancesByOwnerAsync(creatorDaoId, nft1Id);
   const buyerBobDaoNft1BalanceAfterAllRequiredApprovals = await rpc.getNonFungibleTokenClassInstancesByOwnerAsync(buyerDaoId, nft1Id);
+
   logJsonResult(`Moderator Dao Nft1 balance after all required approvals`, moderatorDaoNft1BalanceAfterAllRequiredApprovals);
   logJsonResult(`Creator Dao Nft1 balance after all required approvals`, creatorBobDaoNft1BalanceAfterAllRequiredApprovals);
   logJsonResult(`Buyer Dao Nft1 balance after all required approvals`, buyerBobDaoNft1BalanceAfterAllRequiredApprovals);
@@ -393,7 +391,7 @@ async function run() {
 setup()
   .then(() => {
     logInfo('\nRunning Casimir tx-builder...\n');
-    return run();
+    // return run();
   })
   .then(() => {
     logInfo('Successfully finished !');

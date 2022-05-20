@@ -3,7 +3,6 @@ import { genSha256Hash, genRipemd160Hash } from '@deip/toolbox';
 import { PROTOCOL_CHAIN } from '@deip/constants';
 import { ChainService } from '@deip/chain-service';
 import { u8aToHex } from '@polkadot/util';
-import { MongoTools } from 'node-mongotools';
 import {
   daoIdToSubstrateAddress,
   getFaucetSeedAccount,

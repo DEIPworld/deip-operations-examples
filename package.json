@@ -9,6 +9,8 @@
     "start:substrate-rpc": "npm run build && node dist/substrate-rpc/index.js",
     "start:casimir": "npm run build && node dist/casimir/index.js",
     "start:casimir-nft": "npm run build && node dist/casimir-nowar-nft-flow/index.js",
+    "start:casimir-nft-lazy": "npm run build && node dist/casimir-nowar-nft-flow-lazy/index.js",
+    "start:test": "npm run build && node dist/casimir-test/index.js",
     "start:generate-portal-config": "npm run build && node dist/generate-portal-conifg/index.js",
     "start:casimir-database-setup": "npm run build && node dist/casimir-database-setup/index.js",
     "checkUpdateDeip": "npx ncu \"/^@deip\\/.*$/\"",

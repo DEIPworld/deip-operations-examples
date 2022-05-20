@@ -48,7 +48,7 @@ const config = {
   },
   TENANT_GENERATE_PORTAL_CONFIG: {
     "portal": {
-      "_id": "0000000000000000000000000000000000000001",
+      // "_id": "0000000000000000000000000000000000000001",
       "name": "Nowar-testnet",
       "shortName": "Nowar testnet",
       "description": "Nowar description",
