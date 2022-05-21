@@ -2,18 +2,14 @@ import config from '../config';
 import { logError, logInfo, logJsonResult } from '../log';
 import { randomAsHex } from '@polkadot/util-crypto';
 import { genRipemd160Hash, genSha256Hash } from '@deip/toolbox';
-import { APP_PROPOSAL, PROJECT_CONTENT_TYPES } from '@deip/constants';
-import { getDefaultDomain } from '../utils';
 import {
-  AcceptProposalCmd, AddDaoMemberCmd,
   CreateDaoCmd,
   CreateFungibleTokenCmd,
   CreateNonFungibleTokenCmd,
-  CreateProjectCmd,
-  CreateProjectContentCmd,
-  CreateProposalCmd,
+  IssueFungibleTokenCmd,
   IssueNonFungibleTokenCmd,
   TransferFungibleTokenCmd,
+  TransferNonFungibleTokenCmd
 } from '@deip/commands';
 
 import PRE_SET from '../casimir/preset';
@@ -37,10 +33,6 @@ async function run() {
   const DEIP_APPCHAIN_CORE_ASSET = config.DEIP_APPCHAIN_CORE_ASSET;
   const DAO_SEED_FUNDING_AMOUNT = config.DAO_SEED_FUNDING_AMOUNT
   const DAO_FUNDING_AMOUNT = config.DAO_FUNDING_AMOUNT;
-
-  
-  const lastKnownFtId2 = await rpc.getLastKnownFtId();
-  console.log(`LAST KNOWN FT ID`, lastKnownFtId2);
 
 
   logInfo(`Creating Alice DAO ...`);
@@ -75,43 +67,131 @@ async function run() {
   const aliceDao = await rpc.getAccountAsync(aliceDaoId);
   logJsonResult(`Alice DAO created`, aliceDao);
 
-  const lastKnownFtId = await rpc.getLastKnownFtId();
-  console.log(`LAST KNOWN FT ID`, lastKnownFtId);
+  const recipientAddress = "5F9XVEoQDCYmTH4k5qczas4DiZUfp1RGbYKHyBYFgA9Zj1qn";
 
-  /**
- *   Create FT-1 for Project-1 by Alice Dao
- */
-  logInfo(`Creating FT-1 ...`);
-  // const ft1Id = genRipemd160Hash(randomAsHex(20));
-  const ft1Id = lastKnownFtId;
-  const createFt1Tx = await chainTxBuilder.begin()
+
+  logInfo(`Creating FT ...`);
+  const ft1Id = await rpc.getLastKnownFtId();;
+  const createAndIssueFt1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const createNft1Cmd = new CreateFungibleTokenCmd({
+      const createFt1Cmd = new CreateFungibleTokenCmd({
         entityId: ft1Id,
         issuer: aliceDaoId,
-        name: `Fungible Token ${lastKnownFtId}`,
-        symbol: `FT-${lastKnownFtId}`,
+        name: `Fungible Token ${ft1Id}`,
+        symbol: `FT-${ft1Id}`,
         precision: 2,
         description: "",
         minBalance: 1,
         maxSupply: 1000000000000000 // TODO: add 'maxSupply' for Substrate assets_pallet wrapper
       });
-      txBuilder.addCmd(createNft1Cmd);
+      txBuilder.addCmd(createFt1Cmd);
+
+      const issueFt1Cmd = new IssueFungibleTokenCmd({
+        issuer: aliceDaoId,
+        tokenId: ft1Id,
+        amount: 200,
+        recipient: aliceDaoId
+      });
+      txBuilder.addCmd(issueFt1Cmd);
+
+      const issueFt2Cmd = new IssueFungibleTokenCmd({
+        issuer: aliceDaoId,
+        tokenId: ft1Id,
+        amount: 300,
+        recipient: recipientAddress
+      });
+      txBuilder.addCmd(issueFt2Cmd);
+
       return txBuilder.end();
     });
+  const createAndIssueFt1TxByAlicDao = await createAndIssueFt1Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
+  await sendTxAndWaitAsync(createAndIssueFt1TxByAlicDao);
+  const ft1 = await rpc.getFungibleTokenAsync(ft1Id);
+  logJsonResult(`FT-${ft1Id} created`, ft1);
 
-  const createFt1ByTreasuryDaoTx = await createFt1Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Treasury DAO (final)
-  console.log("00000000000");
-  await sendTxAndWaitAsync(createFt1ByTreasuryDaoTx);
-  console.log("11111111111");
-  const lastKnownFtId1 = await rpc.getLastKnownFtId();
-  console.log(`LAST KNOWN FT ID _!`, lastKnownFtId1);
-  const f1 = await rpc.getFungibleTokenAsync(ft1Id);
-  logJsonResult(`FT-${lastKnownFtId} created`, f1);
+  const ft1Balance = await rpc.getFungibleTokenBalanceByOwnerAsync(recipientAddress, ft1Id);
+  logJsonResult(`FT-${ft1Id} balance for ${recipientAddress}`, ft1Balance);
 
 
-//   const lastKnownFtId2 = await rpc.getLastKnownFtId();
-//   console.log(`LAST KNOWN FT ID`, lastKnownFtId2);
+  logInfo(`Creating NFT ...`);
+  const nft1Id = await rpc.getLastKnownNftClassId();
+  const createAndIssueNft1Tx = await chainTxBuilder.begin()
+    .then((txBuilder) => {
+      const createNft1Cmd = new CreateNonFungibleTokenCmd({
+        entityId: nft1Id,
+        issuer: aliceDaoId,
+        admin: aliceDaoId,
+        name: "Non-Fungible Token 1",
+        symbol: "NFT1",
+        description: "",
+      });
+      txBuilder.addCmd(createNft1Cmd);
+
+      const issueNft1Cmd = new IssueNonFungibleTokenCmd({
+        issuer: aliceDaoId,
+        recipient: aliceDaoId, // daoIdOrPubKeyOrAddress
+        classId: nft1Id,
+        instanceId: 1,
+      });
+      txBuilder.addCmd(issueNft1Cmd);
+
+      const issueNft2Cmd = new IssueNonFungibleTokenCmd({
+        issuer: aliceDaoId,
+        recipient: recipientAddress, // daoIdOrPubKeyOrAddress
+        classId: nft1Id,
+        instanceId: 2,
+      });
+
+      txBuilder.addCmd(issueNft2Cmd);
+      return txBuilder.end();
+    });
+  const createAndIssueNft1ByAliceDaoTx = await createAndIssueNft1Tx.signAsync(alice.getPrivKey(), api); // 1st approval from Alice DAO (final)
+  await sendTxAndWaitAsync(createAndIssueNft1ByAliceDaoTx);
+
+  const nft1 = await rpc.getNonFungibleTokenClassAsync(nft1Id);
+  logJsonResult(`NFT-${nft1Id}`, nft1);
+
+  const nft1Balance = await rpc.getNonFungibleTokenClassInstancesByOwnerAsync(recipientAddress, nft1Id); // daoIdOrPubKeyOrAddress
+  logJsonResult(`NFT-${nft1Id} balance for ${recipientAddress}`, nft1Balance);
+
+
+  logInfo(`Transfer ...`);
+  const transferFtTx = await chainTxBuilder.begin()
+    .then((txBuilder) => {
+      const transferFt1 = new TransferFungibleTokenCmd({
+        from: aliceDaoId,
+        to: recipientAddress, // daoIdOrPubKeyOrAddress
+        tokenId: ft1Id,
+        amount: 100
+      });
+      txBuilder.addCmd(transferFt1);
+
+      const transferNft1 = new TransferNonFungibleTokenCmd({
+        from: aliceDaoId,
+        to: recipientAddress, // daoIdOrPubKeyOrAddress
+        classId: nft1Id,
+        instanceId: 1
+      })
+      txBuilder.addCmd(transferNft1);
+
+      const transferCore = new TransferFungibleTokenCmd({
+        from: aliceDaoId,
+        to: recipientAddress, // daoIdOrPubKeyOrAddress
+        tokenId: DEIP_APPCHAIN_CORE_ASSET.id,
+        amount: "50000000000000000000"
+      });
+      txBuilder.addCmd(transferCore);
+      
+      return txBuilder.end();
+    });
+  const transferFtTxByAliceDaoTx = await transferFtTx.signAsync(getDaoCreatorPrivKey(alice), api); // 1st approval from Alice DAO (final)
+  await sendTxAndWaitAsync(transferFtTxByAliceDaoTx);
+
+  const ft1Balance1 = await rpc.getFungibleTokenBalanceByOwnerAsync(recipientAddress, ft1Id); // daoIdOrPubKeyOrAddress
+  logJsonResult(`Updated FT-${ft1Id} balance for ${recipientAddress}`, ft1Balance1);
+
+  const nft1Balance1 = await rpc.getNonFungibleTokenClassInstancesByOwnerAsync(recipientAddress, nft1Id); // daoIdOrPubKeyOrAddress
+  logJsonResult(`Updated NFT-${nft1Id} balance for ${recipientAddress}`, nft1Balance1);
 
 }
 

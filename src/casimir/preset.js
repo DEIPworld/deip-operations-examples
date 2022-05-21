@@ -96,6 +96,7 @@ export default (config) => {
       await waitAsync(config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK);
     }
 
+    await createCoreTokenAssetMarker();
     await createFaucetStablecoins();
   }
 
@@ -231,6 +232,49 @@ export default (config) => {
   }
 
 
+  async function createCoreTokenAssetMarker() {
+    const chainService = await getChainService();
+    const chainTxBuilder = chainService.getChainTxBuilder();
+    const api = chainService.getChainNodeClient();
+    const rpc = chainService.getChainRpc();
+    const { username: faucetDaoId, wif: faucetSeed } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
+
+    const coreToken = config.DEIP_APPCHAIN_CORE_ASSET;
+    const { id: assetId, symbol, precision } = coreToken;
+
+    const existingAsset = await rpc.getFungibleTokenAsync(assetId);
+    if (existingAsset) {
+      return existingAsset;
+    }
+
+    logInfo(`Creating ${symbol} token asset marker ...`);
+    const createAndIssueAssetTx = await chainTxBuilder.begin({ ignorePortalSig: true })
+      .then((txBuilder) => {
+        const maxSupply = 999999999999999;
+        const createFungibleTokenCmd = new CreateFungibleTokenCmd({
+          entityId: assetId,
+          issuer: faucetDaoId,
+          name: `Asset ${symbol}`,
+          symbol: symbol,
+          precision: precision,
+          description: "",
+          minBalance: 1,
+          maxSupply: maxSupply
+        });
+        txBuilder.addCmd(createFungibleTokenCmd);
+
+        return txBuilder.end();
+      });
+
+    const createAndIssueAssetByFaucetDaoTx = await createAndIssueAssetTx.signAsync(faucetSeed, api);
+    await sendTxAndWaitAsync(createAndIssueAssetByFaucetDaoTx);
+    const asset = await rpc.getFungibleTokenAsync(assetId);
+    logJsonResult(`${symbol} asset marker created by ${faucetDaoId} DAO`, asset);
+
+    return asset;
+  }
+
+
   async function createFaucetStablecoins() {
     const chainService = await getChainService();
     const chainTxBuilder = chainService.getChainTxBuilder();
@@ -253,7 +297,6 @@ export default (config) => {
       logInfo(`Creating and issuing ${symbol} asset to ${faucetDaoId} DAO ...`);
       const createAndIssueAssetTx = await chainTxBuilder.begin({ ignorePortalSig: true })
         .then((txBuilder) => {
-
           const maxSupply = 999999999999999;
           const createFungibleTokenCmd = new CreateFungibleTokenCmd({
             entityId: assetId,
@@ -270,8 +313,6 @@ export default (config) => {
           const issueFungibleTokenCmd = new IssueFungibleTokenCmd({
             issuer: faucetDaoId,
             tokenId: assetId,
-            symbol,
-            precision,
             amount: maxSupply,
             recipient: faucetDaoId
           });
