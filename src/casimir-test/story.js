@@ -71,7 +71,7 @@ async function run() {
 
 
   logInfo(`Creating FT ...`);
-  const ft1Id = await rpc.getLastKnownFtId();;
+  const ft1Id = await rpc.getNextAvailableFtId();;
   const createAndIssueFt1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
       const createFt1Cmd = new CreateFungibleTokenCmd({
@@ -114,7 +114,7 @@ async function run() {
 
 
   logInfo(`Creating NFT ...`);
-  const nft1Id = await rpc.getLastKnownNftClassId();
+  const nft1Id = await rpc.getNextAvailableNftClassId();
   const createAndIssueNft1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
       const createNft1Cmd = new CreateNonFungibleTokenCmd({
