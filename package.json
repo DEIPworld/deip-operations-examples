@@ -14,6 +14,7 @@
     "start:ft-nft-test-2-proposals": "npm run build && node dist/casimir-ft-nft-test/index.js",
     "start:generate-portal-config": "npm run build && node dist/generate-portal-conifg/index.js",
     "start:casimir-database-setup": "npm run build && node dist/casimir-database-setup/index.js",
+    "start:casimir-nowar-nft-flow-lazy-2-proposals": "npm run build && node dist/casimir-nowar-nft-flow-lazy-2-proposals/index.js",
     "checkUpdateDeip": "npx ncu \"/^@deip\\/.*$/\"",
     "linkModules": "node ./scripts/linkDevModules.js",
     "updateDeip": "npx ncu \"/^@deip\\/.*$/\" -u"
@@ -21,9 +22,9 @@
   "author": "DEIP",
   "license": "ISC",
   "dependencies": {
-    "@deip/chain-service": "1.381.0",
-    "@deip/commands": "1.375.1",
-    "@deip/toolbox": "1.375.1",
+    "@deip/chain-service": "1.382.2",
+    "@deip/commands": "1.382.2",
+    "@deip/toolbox": "1.382.2",
     "@polkadot/api": "8.6.2",
     "@polkadot/rpc-provider": "8.6.2",
     "@polkadot/types": "8.6.2",
