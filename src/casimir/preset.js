@@ -3,7 +3,6 @@ import { genSha256Hash, genRipemd160Hash } from '@deip/toolbox';
 import { PROTOCOL_CHAIN } from '@deip/constants';
 import { ChainService } from '@deip/chain-service';
 import { u8aToHex } from '@polkadot/util';
-import { MongoTools } from 'node-mongotools';
 import {
   daoIdToSubstrateAddress,
   getFaucetSeedAccount,
@@ -14,7 +13,7 @@ import {
   CreatePortalCmd,
   CreateFungibleTokenCmd,
   IssueFungibleTokenCmd,
-  TransferAssetCmd,
+  TransferFungibleTokenCmd,
   AddDaoMemberCmd
 } from '@deip/commands';
 
@@ -22,12 +21,17 @@ export default (config) => {
 
   async function setup() {
     logInfo(`Setting up Faucet ...`);
-    await createFaucet();
+    const faucet = await createFaucet();
     logInfo(`Faucet is set`);
 
     logInfo(`Setting up Tenant Portal ...`);
-    await createTenantDaoWithPortal();
+    const tenant = await createTenantDaoWithPortal();
     logInfo(`Tenant Portal is set`);
+
+    return {
+      faucet,
+      tenant
+    }
   }
 
 
@@ -92,8 +96,8 @@ export default (config) => {
       await waitAsync(config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK);
     }
 
+    await createCoreTokenAssetMarker();
     await createFaucetStablecoins();
-
   }
 
 
@@ -107,6 +111,7 @@ export default (config) => {
     const tenantSeed = await chainService.generateChainSeedAccount({ username: tenantDaoId, privateKey: tenantPrivKey });
 
     const existingTenantDao = await rpc.getAccountAsync(tenantDaoId);
+
     if (!existingTenantDao) {
       logInfo(`Creating Tenant DAO ...`);
       await fundAddressFromFaucet(tenantSeed.getPubKey(), config.DAO_SEED_FUNDING_AMOUNT);
@@ -157,7 +162,6 @@ export default (config) => {
       logInfo(`Funding Tenant Portal ...`);
       await fundAddressFromFaucet(verificationPubKey, config.DAO_SEED_FUNDING_AMOUNT);
       logInfo(`End funding Tenant Portal`);
-
     }
 
     const tenantDao = await rpc.getAccountAsync(tenantDaoId);
@@ -219,11 +223,55 @@ export default (config) => {
 
     }
 
-    await createPortalReadModelsStorage();
-
     const updatedTenantDao = await rpc.getAccountAsync(tenantDaoId);
     logJsonResult(`Tenant DAO finalized`, updatedTenantDao);
-    return updatedTenantDao;
+    return {
+      tenantDao: updatedTenantDao,
+      tenantDaoMembers: members
+    };
+  }
+
+
+  async function createCoreTokenAssetMarker() {
+    const chainService = await getChainService();
+    const chainTxBuilder = chainService.getChainTxBuilder();
+    const api = chainService.getChainNodeClient();
+    const rpc = chainService.getChainRpc();
+    const { username: faucetDaoId, wif: faucetSeed } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
+
+    const coreToken = config.DEIP_APPCHAIN_CORE_ASSET;
+    const { id: assetId, symbol, precision } = coreToken;
+
+    const existingAsset = await rpc.getFungibleTokenAsync(assetId);
+    if (existingAsset) {
+      return existingAsset;
+    }
+
+    logInfo(`Creating ${symbol} token asset marker ...`);
+    const createAndIssueAssetTx = await chainTxBuilder.begin({ ignorePortalSig: true })
+      .then((txBuilder) => {
+        const maxSupply = 999999999999999;
+        const createFungibleTokenCmd = new CreateFungibleTokenCmd({
+          entityId: assetId,
+          issuer: faucetDaoId,
+          name: `Asset ${symbol}`,
+          symbol: symbol,
+          precision: precision,
+          description: "",
+          minBalance: 1,
+          maxSupply: maxSupply
+        });
+        txBuilder.addCmd(createFungibleTokenCmd);
+
+        return txBuilder.end();
+      });
+
+    const createAndIssueAssetByFaucetDaoTx = await createAndIssueAssetTx.signAsync(faucetSeed, api);
+    await sendTxAndWaitAsync(createAndIssueAssetByFaucetDaoTx);
+    const asset = await rpc.getFungibleTokenAsync(assetId);
+    logJsonResult(`${symbol} asset marker created by ${faucetDaoId} DAO`, asset);
+
+    return asset;
   }
 
 
@@ -249,7 +297,6 @@ export default (config) => {
       logInfo(`Creating and issuing ${symbol} asset to ${faucetDaoId} DAO ...`);
       const createAndIssueAssetTx = await chainTxBuilder.begin({ ignorePortalSig: true })
         .then((txBuilder) => {
-
           const maxSupply = 999999999999999;
           const createFungibleTokenCmd = new CreateFungibleTokenCmd({
             entityId: assetId,
@@ -266,8 +313,6 @@ export default (config) => {
           const issueFungibleTokenCmd = new IssueFungibleTokenCmd({
             issuer: faucetDaoId,
             tokenId: assetId,
-            symbol,
-            precision,
             amount: maxSupply,
             recipient: faucetDaoId
           });
@@ -285,32 +330,6 @@ export default (config) => {
 
     return assets;
   }
-
-
-  async function createPortalReadModelsStorage() {
-    if (config.TENANT_PORTAL_READ_MODELS_STORAGE) {
-      logInfo(`Creating Read Models storage ...`);
-      const mongoTools = new MongoTools();
-      const { uri, dumpFilePath } = config.TENANT_PORTAL_READ_MODELS_STORAGE;
-      const mongorestorePromise = mongoTools.mongorestore({
-        uri: uri,
-        dumpFile: dumpFilePath        
-      })
-        .then((success) => {
-          console.info("success", success.message);
-          if (success.stderr) {
-            console.info("stderr:\n", success.stderr); // mongorestore binary write details on stderr
-          }
-        })
-        .catch((err) => console.error("error", err));
-
-      await mongorestorePromise;
-      logInfo(`Read Models storage created`);
-    } else {
-      logInfo(`Read Models storage is not specified`);
-    }
-  }
-
 
   function getDaoCreator(seed) {
     const { username: faucetDaoId } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
@@ -342,7 +361,7 @@ export default (config) => {
 
     const fundDaoTx = await chainTxBuilder.begin({ ignorePortalSig: true })
       .then((txBuilder) => {
-        const transferAssetCmd = new TransferAssetCmd({
+        const transferAssetCmd = new TransferFungibleTokenCmd({
           from: faucetDaoId,
           to: daoIdOrPubKey,
           tokenId: DEIP_APPCHAIN_CORE_ASSET.id,
