@@ -33,9 +33,9 @@ async function run() {
   const api = chainService.getChainNodeClient();
   const rpc = chainService.getChainRpc();
 
-  const DEIP_APPCHAIN_CORE_ASSET = config.DEIP_APPCHAIN_CORE_ASSET;
-  const DAO_SEED_FUNDING_AMOUNT = config.DAO_SEED_FUNDING_AMOUNT
-  const DAO_FUNDING_AMOUNT = config.DAO_FUNDING_AMOUNT;
+  const CORE_ASSET = config.CORE_ASSET;
+  const DAO_SEED_FUNDING_AMOUNT = config.FAUCET_ACCOUNT.fundingAmount
+  const DAO_FUNDING_AMOUNT = config.FAUCET_ACCOUNT.fundingAmount;
 
   /**
    * Create Alice DAO actor
@@ -245,7 +245,7 @@ async function run() {
   const project1 = await rpc.getProjectAsync(project1Id);
   logJsonResult(`Creator DAO Project-1 created`, project1);
 
-  const creatorDaoCoreAssetBalance = await rpc.getFungibleTokenBalanceByOwnerAsync(creatorDaoId, DEIP_APPCHAIN_CORE_ASSET.id);
+  const creatorDaoCoreAssetBalance = await rpc.getFungibleTokenBalanceByOwnerAsync(creatorDaoId, CORE_ASSET.id);
   logJsonResult(`Creator Dao CoreAsset balance after CreateProjectCmd`, creatorDaoCoreAssetBalance);
 
   // /**
@@ -263,9 +263,9 @@ async function run() {
       const transferFt1 = new TransferFungibleTokenCmd({
         from: buyerDaoId,
         to: moderatorDaoId,
-        tokenId: DEIP_APPCHAIN_CORE_ASSET.id,
-        symbol: DEIP_APPCHAIN_CORE_ASSET.symbol,
-        precision: DEIP_APPCHAIN_CORE_ASSET.precision,
+        tokenId: CORE_ASSET.id,
+        symbol: CORE_ASSET.symbol,
+        precision: CORE_ASSET.precision,
         amount: "99999"
       });
 
@@ -349,7 +349,7 @@ async function run() {
       return txBuilder.end();
     });
 
-  const creatorDaoCoreAssetBalance1 = await rpc.getFungibleTokenBalanceByOwnerAsync(creatorDaoId, DEIP_APPCHAIN_CORE_ASSET.id);
+  const creatorDaoCoreAssetBalance1 = await rpc.getFungibleTokenBalanceByOwnerAsync(creatorDaoId, CORE_ASSET.id);
   logJsonResult(`Creator Dao CoreAsset balance 1 after accept buyer proposal`, creatorDaoCoreAssetBalance1);
 
   logInfo(`Deciding on Buyer DAO Proposal-1, Buyer DAO approves Proposal-1 ...`);
@@ -368,10 +368,10 @@ async function run() {
   const proposal1SignedByBuyerDaoTx = await decideOnProposal1ByBuyerDaoTx.signAsync(buyer.getPrivKey(), api); // 1st approval from Creator DAO (final)
   await sendTxAndWaitAsync(proposal1SignedByBuyerDaoTx);
 
-  const creatorDaoCoreAssetBalance2 = await rpc.getFungibleTokenBalanceByOwnerAsync(creatorDaoId, DEIP_APPCHAIN_CORE_ASSET.id);
+  const creatorDaoCoreAssetBalance2 = await rpc.getFungibleTokenBalanceByOwnerAsync(creatorDaoId, CORE_ASSET.id);
   logJsonResult(`Creator Dao CoreAsset balance 2 after proposal execution`, creatorDaoCoreAssetBalance2);
 
-  const buyerDaoCoreAssetBalance2 = await rpc.getFungibleTokenBalanceByOwnerAsync(buyerDaoId, DEIP_APPCHAIN_CORE_ASSET.id);
+  const buyerDaoCoreAssetBalance2 = await rpc.getFungibleTokenBalanceByOwnerAsync(buyerDaoId, CORE_ASSET.id);
   logJsonResult(`Buyer Dao CoreAsset balance 2 after proposal execution`, buyerDaoCoreAssetBalance2);
 
   const proposal1SignedByCreatorDaoTx = await decideOnProposal1ByCreatorDaoTx.signAsync(alice.getPrivKey(), api); // 2st approval from Alice DAO on behalf of Moderators multisig DAO on behalf of Creator multisign DAO

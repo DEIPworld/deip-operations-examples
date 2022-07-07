@@ -15,6 +15,7 @@
     "start:generate-portal-config": "npm run build && node dist/generate-portal-conifg/index.js",
     "start:casimir-database-setup": "npm run build && node dist/casimir-database-setup/index.js",
     "start:casimir-nowar-nft-flow-lazy-2-proposals": "npm run build && node dist/casimir-nowar-nft-flow-lazy-2-proposals/index.js",
+    "start:casimir-init": "NODE_ENV_PATH=./../../src/.config.env npm run start:generate-portal-config && npm run start:casimir-database-setup",
     "checkUpdateDeip": "npx ncu \"/^@deip\\/.*$/\"",
     "linkModules": "node ./scripts/linkDevModules.js",
     "updateDeip": "npx ncu \"/^@deip\\/.*$/\" -u"

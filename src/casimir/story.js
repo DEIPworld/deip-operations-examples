@@ -52,9 +52,9 @@ async function run() {
   const api = chainService.getChainNodeClient();
   const rpc = chainService.getChainRpc();
   
-  const DEIP_APPCHAIN_CORE_ASSET = config.DEIP_APPCHAIN_CORE_ASSET;
-  const DAO_SEED_FUNDING_AMOUNT = config.DAO_SEED_FUNDING_AMOUNT
-  const DAO_FUNDING_AMOUNT = config.DAO_FUNDING_AMOUNT;
+  const CORE_ASSET = config.CORE_ASSET;
+  const DAO_SEED_FUNDING_AMOUNT = config.FAUCET_ACCOUNT.fundingAmount;
+  const DAO_FUNDING_AMOUNT = config.FAUCET_ACCOUNT.fundingAmount;
 
   /**
    * Create Alice DAO actor
@@ -743,18 +743,18 @@ async function run() {
       const fundProject4Cmd = new TransferAssetCmd({
         from: charlieDaoId,
         to: bobDaveDaoId,
-        tokenId: DEIP_APPCHAIN_CORE_ASSET.id,
-        symbol: DEIP_APPCHAIN_CORE_ASSET.symbol,
-        precision: DEIP_APPCHAIN_CORE_ASSET.precision,
+        tokenId: CORE_ASSET.id,
+        symbol: CORE_ASSET.symbol,
+        precision: CORE_ASSET.precision,
         amount: "1000000000"
       });
 
       const fundProject3Cmd = new TransferAssetCmd({
         from: multigroup1DaoId,
         to: aliceBobDaoId,
-        tokenId: DEIP_APPCHAIN_CORE_ASSET.id,
-        symbol: DEIP_APPCHAIN_CORE_ASSET.symbol,
-        precision: DEIP_APPCHAIN_CORE_ASSET.precision,
+        tokenId: CORE_ASSET.id,
+        symbol: CORE_ASSET.symbol,
+        precision: CORE_ASSET.precision,
         amount: "1000000000"
       });
 
@@ -1201,7 +1201,7 @@ async function run() {
   logJsonResult(`InvestmentOpportunity-1 created`, invstOpp1);
 
   logInfo(`Waiting for InvestmentOpportunity-1 activation time ...\n`);
-  await waitAsync(invstOpp1StartsInMillisecs + config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK);
+  await waitAsync(invstOpp1StartsInMillisecs + config.CHAIN_BLOCK_INTERVAL_MILLIS);
 
 
 
@@ -1285,7 +1285,7 @@ async function run() {
   logJsonResult(`LicenseAgreement-1 between Alice Dao and Charlie Dao parties is initiated`, initiatedLicenseAgreement1);
 
   logInfo(`Waiting for LicenseAgreement-1 signing period activation time ...\n`);
-  await waitAsync(licenseAgreement1SigningActivatesInMillisecs + config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK);
+  await waitAsync(licenseAgreement1SigningActivatesInMillisecs + config.CHAIN_BLOCK_INTERVAL_MILLIS);
 
 
 
