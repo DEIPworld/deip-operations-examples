@@ -79,11 +79,7 @@ async function run() {
   console.log("TENANT_PORTAL", TENANT_PORTAL)
   console.log("TENANT_HOT_WALLET", TENANT_HOT_WALLET)
 
-  // logJsonResult("TENANT", TENANT);
-  // logJsonResult("TENANT_PORTAL", TENANT_PORTAL);
-
   console.log(`New portal env values:\nTENANT='${JSON.stringify(TENANT)}'\nTENANT_PORTAL='${JSON.stringify(TENANT_PORTAL)}'\nTENANT_HOT_WALLET='${JSON.stringify(TENANT_HOT_WALLET)}'`)
-
   return {
     TENANT,
     TENANT_PORTAL,
@@ -105,13 +101,14 @@ run()
     if (process.env.NODE_ENV_PATH) {
       const additionalСonfigData = [
         '\n',
-        `TENANT_DATA='${JSON.stringify(TENANT)}'`,
+        `TENANT_DATA=${JSON.stringify(TENANT)}`,
         `TENANT="${TENANT.id}"`,
-        `TENANT_PORTAL='${JSON.stringify(TENANT_PORTAL)}'`,
-        `TENANT_HOT_WALLET='${JSON.stringify(TENANT_HOT_WALLET)}'`
+        `TENANT_PORTAL=${JSON.stringify(TENANT_PORTAL)}`,
+        `TENANT_HOT_WALLET=${JSON.stringify(TENANT_HOT_WALLET)}`,
+        `TENANT_HOT_WALLET_DAO_ID='${TENANT_HOT_WALLET.daoId}'`,
       ].join('\n');
 
-      fs.appendFileSync(`${__dirname}/${process.env.NODE_ENV_PATH}`, additionalСonfigData)
+      fs.appendFileSync(process.env.NODE_ENV_PATH, additionalСonfigData)
     }
 
     return result;

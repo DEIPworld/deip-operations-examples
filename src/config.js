@@ -1,13 +1,20 @@
 require('dotenv').config({
-  path: __dirname + '/' +
-    (process.env.DEIP_CONFIG ? ('.' + process.env.DEIP_CONFIG + '.env') : '.config.env')
+  path: process.env.NODE_ENV_PATH ?
+    process.env.NODE_ENV_PATH :
+    __dirname + '/' + (process.env.DEIP_CONFIG ? ('.' + process.env.DEIP_CONFIG + '.env') : '.config.env')
 });
 
 function parseJsonEnvVar(jsonEnvVarName, defaultValue) {
   const jsonEnvVar = process.env[jsonEnvVarName];
   if (!jsonEnvVar && defaultValue === undefined)
     throw new Error(jsonEnvVarName + " json environment variable is not defined. Specify it in the config or provide a default value");
-  return jsonEnvVar ? JSON.parse(jsonEnvVar) : defaultValue;
+
+  if (jsonEnvVar) {
+    const isObjectOrArray = jsonEnvVar.startsWith('[') || jsonEnvVar.startsWith('{');
+    const resultEnvToParse = isObjectOrArray ? `${jsonEnvVar}` : jsonEnvVar;
+    return JSON.parse(resultEnvToParse)
+  }
+  return defaultValue
 }
 
 function parseIntEnvVar(intEnvVarName, defaultValue) {
@@ -46,12 +53,12 @@ const config = {
   },
   TENANT_GENERATE_PORTAL_CONFIG: {
     "portal": {
-      // "_id": "0000000000000000000000000000000000000001",
-      "name": "Nowar-testnet",
-      "shortName": "Nowar testnet",
-      "description": "Nowar description",
+      // "_id": "9000000000000000000000000000000000000001",
+      "name": "Nowar-testnet-dump-1",
+      "shortName": "Nowar testnet dumm 1",
+      "description": "Nowar description dump 1",
       "serverUrl": "https://nowar.deip.world",
-      "email": "nowartestnet@deip.world",
+      "email": "nowartestnetdump1@deip.world",
     },
   }
 };
