@@ -7,4 +7,4 @@ require("@babel/register")({
     },
   ]
 });
-require("./story_1");
+require("./story");

@@ -9,11 +9,8 @@ function parseJsonEnvVar(jsonEnvVarName, defaultValue) {
   if (!jsonEnvVar && defaultValue === undefined)
     throw new Error(jsonEnvVarName + " json environment variable is not defined. Specify it in the config or provide a default value");
 
-  if (jsonEnvVar) {
-    const isObjectOrArray = jsonEnvVar.startsWith('[') || jsonEnvVar.startsWith('{');
-    const resultEnvToParse = isObjectOrArray ? `${jsonEnvVar}` : jsonEnvVar;
-    return JSON.parse(resultEnvToParse)
-  }
+  if (jsonEnvVar) return JSON.parse(jsonEnvVar)
+  
   return defaultValue
 }
 

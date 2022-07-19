@@ -2,8 +2,8 @@ import config from '../config';
 import { logError, logInfo, logJsonResult } from '../log';
 import { randomAsHex } from '@polkadot/util-crypto';
 import { genRipemd160Hash, genSha256Hash } from '@deip/toolbox';
-import { APP_PROPOSAL, PROJECT_CONTENT_TYPES } from '@deip/constants';
-import { getDefaultDomain } from '../utils';
+import { APP_PROPOSAL, PROJECT_CONTENT_TYPES } from '@casimir/platform-core';
+import { getDefaultDomain, daoIdToSubstrateAddress } from '../utils';
 import {
   AcceptProposalCmd, AddDaoMemberCmd,
   CreateDaoCmd,
@@ -15,6 +15,9 @@ import {
   IssueNonFungibleTokenCmd,
   TransferFungibleTokenCmd,
   TransferNonFungibleTokenCmd,
+  TransferFTCmd,
+  TransferNFTCmd,
+  CreateNftItemCmd,
 } from '@deip/commands';
 
 import PRE_SET from '../casimir/preset';
@@ -38,7 +41,6 @@ async function run() {
   const CORE_ASSET = config.CORE_ASSET;
   const DAO_SEED_FUNDING_AMOUNT = config.FAUCET_ACCOUNT.fundingAmount
   const DAO_FUNDING_AMOUNT = config.FAUCET_ACCOUNT.fundingAmount;
-
   /**
    * Create Alice DAO actor
    */
@@ -273,10 +275,10 @@ async function run() {
    * Create NFT Class-1
    */
   logInfo(`Creating Creator Project-1 NFT Class 1 ...`);
-  const nft1Id = await rpc.getNextAvailableNftClassId();;
+  const nft1Id = await rpc.getNextAvailableNftCollectionId();;
   const createNftClass1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const createNft1Cmd = new CreateNonFungibleTokenCmd({
+      const createNft1Cmd = new CreateNftCollectionCmd({
         entityId: nft1Id,
         issuer: creatorDaoId,
         name: "Non-Fungible Token 1 of Project-1",
@@ -367,7 +369,7 @@ async function run() {
   const createProposal1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
 
-      const transferFt = new TransferFungibleTokenCmd({
+      const transferFt = new TransferFTCmd({
         from: hotWalletDaoId,
         to: creatorDaoId,
         tokenId: CORE_ASSET.id,
@@ -376,11 +378,11 @@ async function run() {
         amount: "99999"
       });
 
-      const issueNft = new IssueNonFungibleTokenCmd({
+      const issueNft = new CreateNftItemCmd({
         issuer: creatorDaoId,
         recipient: hotWalletDaoId,
-        classId: nft1Id,
-        instanceId: nft1InstanceId,
+        nftCollectionId: nft1Id,
+        nftItemId: nft1InstanceId,
       });
 
       const proposal1Batch = [
@@ -391,13 +393,14 @@ async function run() {
       return chainTxBuilder.getBatchWeight(proposal1Batch)
         .then((batchWeight) => {
           proposal1BatchWeight = batchWeight;
-
+          console.log("Batch weight: " + proposal1BatchWeight);
           const createProposalCmd = new CreateProposalCmd({
             entityId: proposal1Id,
-            type: APP_PROPOSAL.PROJECT_PROPOSAL,
+            type: APP_PROPOSAL.NFT_LAZY_SELL_PROPOSAL,
             creator: creatorDaoId,
             expirationTime: Date.now() + 3e6,
             proposedCmds: proposal1Batch,
+            batchWeight: proposal1BatchWeight,
           });
 
           txBuilder.addCmd(createProposalCmd);
@@ -424,7 +427,7 @@ async function run() {
   const createProposal2Tx = await chainTxBuilder.begin() // requires 2 signs, from buyer (instant), and from hotWallet
     .then((txBuilder) => {
 
-      const transferFt = new TransferFungibleTokenCmd({
+      const transferFt = new TransferFTCmd({
         from: buyerDaoId,
         to: hotWalletDaoId,
         tokenId: CORE_ASSET.id,
@@ -440,11 +443,11 @@ async function run() {
       });
 
 
-      const transferNft = new TransferNonFungibleTokenCmd({
+      const transferNft = new TransferNFTCmd({
         from: hotWalletDaoId,
         to: buyerDaoId,
-        classId: nft1Id,
-        instanceId: nft1InstanceId,
+        nftCollectionId: nft1Id,
+        nftItemId: nft1InstanceId,
       });
 
       const proposal1Batch = [
@@ -459,10 +462,11 @@ async function run() {
 
           const createProposalCmd = new CreateProposalCmd({
             entityId: proposal2Id,
-            type: APP_PROPOSAL.PROJECT_PROPOSAL,
+            type: APP_PROPOSAL.NFT_LAZY_BUY_PROPOSAL,
             creator: buyerDaoId,
             expirationTime: Date.now() + 3e6,
             proposedCmds: proposal1Batch,
+            batchWeight: proposal2BatchWeight,
           });
 
           txBuilder.addCmd(createProposalCmd);
