@@ -35,9 +35,9 @@ async function run() {
   const api = chainService.getChainNodeClient();
   const rpc = chainService.getChainRpc();
 
-  const DEIP_APPCHAIN_CORE_ASSET = config.DEIP_APPCHAIN_CORE_ASSET;
-  const DAO_SEED_FUNDING_AMOUNT = config.DAO_SEED_FUNDING_AMOUNT
-  const DAO_FUNDING_AMOUNT = config.DAO_FUNDING_AMOUNT;
+  const CORE_ASSET = config.CORE_ASSET;
+  const DAO_SEED_FUNDING_AMOUNT = config.FAUCET_ACCOUNT.fundingAmount
+  const DAO_FUNDING_AMOUNT = config.FAUCET_ACCOUNT.fundingAmount;
 
   /**
    * Create Alice DAO actor
@@ -111,7 +111,7 @@ async function run() {
   logJsonResult(`Bob DAO created`, bobDao);
 
 
-  const aliceDaoCoreAssetBalance1 = await rpc.getFungibleTokenBalanceByOwnerAsync(aliceDaoId, DEIP_APPCHAIN_CORE_ASSET.id);
+  const aliceDaoCoreAssetBalance1 = await rpc.getFungibleTokenBalanceByOwnerAsync(aliceDaoId, CORE_ASSET.id);
   logJsonResult(`Alice Dao CoreAsset balance after CreateProjectCmd`, aliceDaoCoreAssetBalance1);
 
 
@@ -370,9 +370,9 @@ async function run() {
       const transferFt = new TransferFungibleTokenCmd({
         from: hotWalletDaoId,
         to: creatorDaoId,
-        tokenId: DEIP_APPCHAIN_CORE_ASSET.id,
-        symbol: DEIP_APPCHAIN_CORE_ASSET.symbol,
-        precision: DEIP_APPCHAIN_CORE_ASSET.precision,
+        tokenId: CORE_ASSET.id,
+        symbol: CORE_ASSET.symbol,
+        precision: CORE_ASSET.precision,
         amount: "99999"
       });
 
@@ -427,9 +427,9 @@ async function run() {
       const transferFt = new TransferFungibleTokenCmd({
         from: buyerDaoId,
         to: hotWalletDaoId,
-        tokenId: DEIP_APPCHAIN_CORE_ASSET.id,
-        symbol: DEIP_APPCHAIN_CORE_ASSET.symbol,
-        precision: DEIP_APPCHAIN_CORE_ASSET.precision,
+        tokenId: CORE_ASSET.id,
+        symbol: CORE_ASSET.symbol,
+        precision: CORE_ASSET.precision,
         amount: "99999"
       });
 

@@ -4,7 +4,7 @@ import { toHexFormat } from './../utils';
 
 
 const rpcToChainNodeAsync = (method, params = []) => {
-  return fetch(config.DEIP_APPCHAIN_NODE_URL, {
+  return fetch(config.DEIP_FULL_NODE_URL, {
     body: JSON.stringify({
       id: 1,
       jsonrpc: '2.0',

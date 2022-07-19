@@ -31,7 +31,7 @@ async function setup() {
   const typesRegistry = new TypeRegistry();
   typesRegistry.register(types);
 
-  const provider = new HttpProvider(config.DEIP_APPCHAIN_NODE_URL);
+  const provider = new HttpProvider(config.DEIP_FULL_NODE_URL);
 
   const api = await ApiPromise.create({ provider, registry: typesRegistry });
   const [chain, nodeName, nodeVersion, rpcMetadata] = await Promise.all([
@@ -46,14 +46,14 @@ async function setup() {
 }
 
 
-async function sendTxAndWaitAsync(rawTx, timeout = config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK) {
+async function sendTxAndWaitAsync(rawTx, timeout = config.CHAIN_BLOCK_INTERVAL_MILLIS) {
   await sendTxAsync(rawTx);
   await waitAsync(timeout);
 }
 
 
 async function fundAddressFromFaucet(addrees, api) {
-  const tx = api.tx.balances.transfer(addrees, config.DAO_SEED_FUNDING_AMOUNT);
+  const tx = api.tx.balances.transfer(addrees, config.FAUCET_ACCOUNT.fundingAmount);
   await tx.signAsync(getFaucetSeedAccount());
   await sendTxAndWaitAsync(tx.toHex());
 }

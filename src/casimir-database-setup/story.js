@@ -16,7 +16,9 @@ const {
  * Patch portal collection with new portal data
  * Patch users-daos collection
  * Patch teams-daos collection
- * TODO: Patch assets collection, update stablecoins
+ * Patch assets collection, update stablecoins
+ * Patch layauts collection
+ * Patch attributes collection
  */
 
 async function run(onChainData) {
@@ -34,6 +36,13 @@ async function run(onChainData) {
   const { portal: portalGeneratorConfig } = config.TENANT_GENERATE_PORTAL_CONFIG;
   const { tenant: { tenantDao, tenantDaoMembers } } = onChainData;
 
+  const { daoId: tenantMemberDaoId, password: tenantMemberPwd } = tenantDaoMembers[0];
+  const tenantMember = await chainService.generateChainSeedAccount({
+    username: tenantMemberDaoId,
+    password: tenantMemberPwd
+  });
+
+
   const portal = await dbDriver.findOne(PORTALS_COLLECTION, { _id: oldPortal._id });
   const portalPatched = {
     ...portal,
@@ -46,6 +55,10 @@ async function run(onChainData) {
     email: portalGeneratorConfig.email,
     settings: {
       ...portal.settings,
+      moderation: {
+        ...portal.settings.moderation,
+        moderators: [tenantMember.getUsername()]
+      },
       roles: portal.settings.roles.map(role => ({ ...role, teamId: tenantDao.daoId }))
     },
     createdAt: new Date(),
@@ -59,11 +72,7 @@ async function run(onChainData) {
 
   logInfo(`Trying to patch portal user-dao`);
   const USER_DAO_COLLECTION = "users-daos";
-  const { daoId: tenantMemberDaoId, password: tenantMemberPwd } = tenantDaoMembers[0];
-  const tenantMember = await chainService.generateChainSeedAccount({
-    username: tenantMemberDaoId,
-    password: tenantMemberPwd
-  });
+
 
   const userDao = await dbDriver.findOne(USER_DAO_COLLECTION, { _id: oldUserDao._id });
   const userDaoPatched = {
@@ -104,6 +113,16 @@ async function run(onChainData) {
   await dbDriver.deleteOne(TEAM_DAO_COLLECTION, { _id: oldUserDao._id });
   await dbDriver.insertOne(TEAM_DAO_COLLECTION, teamPatched);
   logJsonResult("Team-dao collection patched successfully", teamPatched);
+
+  logInfo(`Trying to patch portal layouts collection`);
+  const LAYOUT_COLLECTION = "layouts";
+  await dbDriver.updateMany(LAYOUT_COLLECTION, { portalId: oldPortal._id }, { $set: { portalId: tenantDao.daoId } });
+  logJsonResult("Layouts collection patched successfully");
+
+  logInfo(`Trying to patch portal arrtibutes collection`);
+  const ATTRIBUTES_COLLECTION = "attributes";
+  await dbDriver.updateMany(ATTRIBUTES_COLLECTION, { portalId: oldPortal._id }, { $set: { portalId: tenantDao.daoId } });
+  logJsonResult("Arrtibutes collection patched successfully");
 }
 
 
