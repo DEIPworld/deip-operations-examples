@@ -7,12 +7,12 @@ import { getDefaultDomain } from '../utils';
 import {
   AcceptProposalCmd, AddDaoMemberCmd,
   CreateDaoCmd,
-  CreateNonFungibleTokenCmd,
+  CreateNftCollectionCmd,
   CreateProjectCmd,
   CreateProjectContentCmd,
   CreateProposalCmd,
-  IssueNonFungibleTokenCmd,
-  TransferFungibleTokenCmd,
+  CreateNftItemCmd,
+  TransferFTCmd,
 } from '@deip/commands';
 
 import PRE_SET from '../casimir/preset';
@@ -260,7 +260,7 @@ async function run() {
   const createProposal1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
 
-      const transferFt1 = new TransferFungibleTokenCmd({
+      const transferFt1 = new TransferFTCmd({
         from: buyerDaoId,
         to: moderatorDaoId,
         tokenId: CORE_ASSET.id,
@@ -281,7 +281,7 @@ async function run() {
         references: []
       });
 
-      const createNft1Cmd = new CreateNonFungibleTokenCmd({
+      const createNft1Cmd = new CreateNftCollectionCmd({
         entityId: nft1Id,
         issuer: creatorDaoId,
         admin: creatorDaoId,
@@ -294,7 +294,7 @@ async function run() {
         }
       });
 
-      const issueNft1ToBuyerDaoCmd = new IssueNonFungibleTokenCmd({
+      const issueNft1ToBuyerDaoCmd = new CreateNftItemCmd({
         issuer: creatorDaoId,
         recipient: buyerDaoId,
         classId: nft1Id,
@@ -391,7 +391,7 @@ async function run() {
 setup()
   .then(() => {
     logInfo('\nRunning Casimir tx-builder...\n');
-    // return run();
+    return run();
   })
   .then(() => {
     logInfo('Successfully finished !');

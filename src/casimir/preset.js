@@ -13,7 +13,7 @@ import {
   CreatePortalCmd,
   CreateFungibleTokenCmd,
   IssueFungibleTokenCmd,
-  TransferFungibleTokenCmd,
+  TransferFTCmd,
   AddDaoMemberCmd
 } from '@deip/commands';
 import { randomAsHex } from '@polkadot/util-crypto';
@@ -30,14 +30,14 @@ export default (config) => {
     logInfo(`Tenant Portal is set`);
 
     logInfo(`Setting up Tenant Hot wallet ...`);
-    const hotWallet = await createHotWalletDao();
+    // const hotWallet = await createHotWalletDao();
     logInfo(`Tenant Hot wallet is set`);
 
 
     return {
       faucet,
       tenant,
-      hotWallet
+      // hotWallet
     }
   }
 
@@ -258,7 +258,6 @@ export default (config) => {
             owner: {
               auths: [
                 { key: hotWallet.getPubKey(), weight: 1 },
-                // { name: moderatorDaoId, weight: 1 }
               ],
               weight: 1
             }
@@ -413,7 +412,7 @@ export default (config) => {
 
     const fundDaoTx = await chainTxBuilder.begin({ ignorePortalSig: true })
       .then((txBuilder) => {
-        const transferAssetCmd = new TransferFungibleTokenCmd({
+        const transferAssetCmd = new TransferFTCmd({
           from: faucetDaoId,
           to: daoIdOrPubKey,
           tokenId: CORE_ASSET.id,

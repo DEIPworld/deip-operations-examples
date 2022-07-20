@@ -1,21 +1,15 @@
+import {
+  AcceptProposalCmd, CreateDaoCmd,
+  CreateNftCollectionCmd, CreateProposalCmd,
+  CreateNftItemCmd,
+  TransferFTCmd,
+  TransferNonFungibleTokenCmd
+} from '@deip/commands';
+import { APP_PROPOSAL } from '@deip/constants';
+import { genRipemd160Hash, genSha256Hash } from '@deip/toolbox';
+import { randomAsHex } from '@polkadot/util-crypto';
 import config from '../config';
 import { logError, logInfo, logJsonResult } from '../log';
-import { randomAsHex } from '@polkadot/util-crypto';
-import { genRipemd160Hash, genSha256Hash } from '@deip/toolbox';
-import { APP_PROPOSAL, PROJECT_CONTENT_TYPES } from '@deip/constants';
-import { getDefaultDomain } from '../utils';
-import {
-  AcceptProposalCmd, AddDaoMemberCmd,
-  CreateDaoCmd,
-  CreateNonFungibleTokenCmd,
-  UpdateNonFungibleTokenTeamCmd,
-  UpdateNonFungibleTokenOwnerCmd,
-  CreateNftCollectionCmd,
-  CreateProposalCmd,
-  IssueNonFungibleTokenCmd,
-  TransferFungibleTokenCmd,
-  TransferNonFungibleTokenCmd,
-} from '@deip/commands';
 
 import PRE_SET from '../casimir/preset';
 
@@ -273,10 +267,10 @@ async function run() {
    * Create NFT Class-1
    */
   logInfo(`Creating Creator Project-1 NFT Class 1 ...`);
-  const nft1Id = await rpc.getNextAvailableNftClassId();;
+  const nft1Id = await rpc.getNextAvailableNftCollectionId();;
   const createNftClass1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const createNft1Cmd = new CreateNonFungibleTokenCmd({
+      const createNft1Cmd = new CreateNftCollectionCmd({
         entityId: nft1Id,
         issuer: creatorDaoId,
         name: "Non-Fungible Token 1 of Project-1",
@@ -342,7 +336,7 @@ async function run() {
   // const nft1InstanceId = 1;
   // const createNftInstance1Tx = await chainTxBuilder.begin()
   //   .then((txBuilder) => {
-  //     const issueNft1ToBuyerDaoCmd = new IssueNonFungibleTokenCmd({
+  //     const issueNft1ToBuyerDaoCmd = new CreateNftItemCmd({
   //       issuer: creatorDaoId,
   //       recipient: buyerDaoId,
   //       classId: nft1Id,
@@ -367,7 +361,7 @@ async function run() {
   const createProposal1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
 
-      const transferFt = new TransferFungibleTokenCmd({
+      const transferFt = new TransferFTCmd({
         from: hotWalletDaoId,
         to: creatorDaoId,
         tokenId: CORE_ASSET.id,
@@ -376,7 +370,7 @@ async function run() {
         amount: "99999"
       });
 
-      const issueNft = new IssueNonFungibleTokenCmd({
+      const issueNft = new CreateNftItemCmd({
         issuer: creatorDaoId,
         recipient: hotWalletDaoId,
         classId: nft1Id,
@@ -424,7 +418,7 @@ async function run() {
   const createProposal2Tx = await chainTxBuilder.begin() // requires 2 signs, from buyer (instant), and from hotWallet
     .then((txBuilder) => {
 
-      const transferFt = new TransferFungibleTokenCmd({
+      const transferFt = new TransferFTCmd({
         from: buyerDaoId,
         to: hotWalletDaoId,
         tokenId: CORE_ASSET.id,

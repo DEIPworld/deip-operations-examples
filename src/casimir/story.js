@@ -21,8 +21,8 @@ import {
   DeclineProposalCmd,
   CreateFungibleTokenCmd,
   IssueFungibleTokenCmd,
-  CreateNonFungibleTokenCmd,
-  IssueNonFungibleTokenCmd,
+  CreateNftCollectionCmd,
+  CreateNftItemCmd,
   CreateInvestmentOpportunityCmd,
   InvestCmd,
   CreateContractAgreementCmd,
@@ -1037,7 +1037,7 @@ async function run() {
   const nft2Id = genRipemd160Hash(randomAsHex(20));
   const createNft2Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const createNft2Cmd = new CreateNonFungibleTokenCmd({
+      const createNft2Cmd = new CreateNftCollectionCmd({
         entityId: nft2Id,
         issuer: aliceDaoId,
         name: "Non-Fungible Token 2 of Project-1",
@@ -1065,7 +1065,7 @@ async function run() {
   logInfo(`Issuing some NFT-2 to Alice Dao ...`);
   const issueNft2ToAliceDaoTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const issueNft2ToAliceDaoCmd = new IssueNonFungibleTokenCmd({
+      const issueNft2ToAliceDaoCmd = new CreateNftItemCmd({
         issuer: aliceDaoId,
         classId: nft2Id,
         instanceId: 1,
@@ -1083,7 +1083,7 @@ async function run() {
   logInfo(`Issuing some NFT-2 to Bob Dao ...`);
   const issueNft2ToBobDaoTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const issueNft2ToBobDaoCmd = new IssueNonFungibleTokenCmd({
+      const issueNft2ToBobDaoCmd = new CreateNftItemCmd({
         issuer: aliceDaoId,
         classId: nft2Id,
         instanceId: 2,
@@ -1105,7 +1105,7 @@ async function run() {
   const nft3Id = genRipemd160Hash(randomAsHex(20));
   const createNft3Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const createNft3Cmd = new CreateNonFungibleTokenCmd({
+      const createNft3Cmd = new CreateNftCollectionCmd({
         entityId: nft3Id,
         issuer: aliceDaoId,
         name: "Non-Fungible Token 3 of Project-1",
@@ -1132,7 +1132,7 @@ async function run() {
   logInfo(`Issuing some NFT-3 to Alice Dao ...`);
   const issueNft3ToAliceDaoTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const issueNft3ToAliceDaoCmd = new IssueNonFungibleTokenCmd({
+      const issueNft3ToAliceDaoCmd = new CreateNftItemCmd({
         issuer: aliceDaoId,
         classId: nft3Id,
         instanceId: 1,
