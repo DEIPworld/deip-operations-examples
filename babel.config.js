@@ -15,6 +15,6 @@ module.exports = {
     ['@babel/plugin-proposal-object-rest-spread'],
     ['@babel/plugin-proposal-optional-chaining'],
     ['@babel/plugin-proposal-private-methods', { loose: true }],
-    ['@babel/plugin-transform-runtime']
+    ['@babel/plugin-transform-runtime'],
   ]
 }
