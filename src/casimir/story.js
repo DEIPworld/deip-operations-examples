@@ -2,7 +2,7 @@ import config from './../config';
 import { logInfo, logSuccess, logError, logJsonResult } from './../log';
 import { randomAsHex } from '@polkadot/util-crypto';
 import { genSha256Hash, genRipemd160Hash } from '@deip/toolbox';
-import { APP_PROPOSAL, CONTRACT_AGREEMENT_TYPE, PROJECT_CONTENT_TYPES, ASSET_TYPE } from '@deip/constants';
+import { APP_PROPOSAL, CONTRACT_AGREEMENT_TYPE, PROJECT_CONTENT_TYPES, ASSET_TYPE } from '@casimir/platform-core';
 import {
   waitAsync, 
   getDefaultDomain

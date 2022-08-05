@@ -26,9 +26,10 @@
   "author": "DEIP",
   "license": "ISC",
   "dependencies": {
-    "@deip/chain-service": "1.389.2",
-    "@deip/commands": "1.389.2",
-    "@deip/toolbox": "1.388.0",
+    "@casimir/platform-core": "1.390.0",
+    "@deip/chain-service": "^1.393.2",
+    "@deip/commands": "^1.390.0",
+    "@deip/toolbox": "^1.388.0",
     "@polkadot/api": "8.6.2",
     "@polkadot/rpc-provider": "8.6.2",
     "@polkadot/types": "8.6.2",

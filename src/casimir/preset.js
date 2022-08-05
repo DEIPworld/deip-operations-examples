@@ -1,6 +1,6 @@
 import { logInfo, logSuccess, logError, logJsonResult } from './../log';
 import { genSha256Hash, genRipemd160Hash } from '@deip/toolbox';
-import { PROTOCOL_CHAIN } from '@deip/constants';
+import { PROTOCOL_CHAIN } from '@casimir/platform-core';
 import { ChainService } from '@deip/chain-service';
 import { u8aToHex } from '@polkadot/util';
 import {
