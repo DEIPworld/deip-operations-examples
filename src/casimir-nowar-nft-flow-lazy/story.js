@@ -7,13 +7,12 @@ import { getDefaultDomain } from '../utils';
 import {
   AcceptProposalCmd, AddDaoMemberCmd,
   CreateDaoCmd,
-  CreateNonFungibleTokenCmd,
   UpdateNonFungibleTokenTeamCmd,
   UpdateNonFungibleTokenOwnerCmd,
   CreateNftCollectionCmd,
   CreateProposalCmd,
-  IssueNonFungibleTokenCmd,
-  TransferFungibleTokenCmd,
+  CreateNftItemCmd,
+  TransferFTCmd,
 } from '@deip/commands';
 
 import PRE_SET from '../casimir/preset';
@@ -34,9 +33,9 @@ async function run() {
   const api = chainService.getChainNodeClient();
   const rpc = chainService.getChainRpc();
 
-  const DEIP_APPCHAIN_CORE_ASSET = config.DEIP_APPCHAIN_CORE_ASSET;
-  const DAO_SEED_FUNDING_AMOUNT = config.DAO_SEED_FUNDING_AMOUNT
-  const DAO_FUNDING_AMOUNT = config.DAO_FUNDING_AMOUNT;
+  const CORE_ASSET = config.CORE_ASSET;
+  const DAO_SEED_FUNDING_AMOUNT = config.FAUCET_ACCOUNT.fundingAmount
+  const DAO_FUNDING_AMOUNT = config.FAUCET_ACCOUNT.fundingAmount;
 
   /**
    * Create Alice DAO actor
@@ -110,7 +109,7 @@ async function run() {
   logJsonResult(`Bob DAO created`, bobDao);
 
 
-  const aliceDaoCoreAssetBalance1 = await rpc.getFungibleTokenBalanceByOwnerAsync(aliceDaoId, DEIP_APPCHAIN_CORE_ASSET.id);
+  const aliceDaoCoreAssetBalance1 = await rpc.getFungibleTokenBalanceByOwnerAsync(aliceDaoId, CORE_ASSET.id);
   logJsonResult(`Alice Dao CoreAsset balance after CreateProjectCmd`, aliceDaoCoreAssetBalance1);
 
 
@@ -234,10 +233,10 @@ async function run() {
    * Create NFT Class-1
    */
   logInfo(`Creating Creator Project-1 NFT Class 1 ...`);
-  const nft1Id = await rpc.getNextAvailableNftClassId();;
+  const nft1Id = await rpc.getNextAvailableNftCollectionId();;
   const createNftClass1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const createNft1Cmd = new CreateNonFungibleTokenCmd({
+      const createNft1Cmd = new CreateNftCollectionCmd({
         entityId: nft1Id,
         issuer: creatorDaoId,
         name: "Non-Fungible Token 1 of Project-1",
@@ -303,7 +302,7 @@ async function run() {
   const nft1InstanceId = 1;
   const createNftInstance1Tx = await chainTxBuilder.begin()
   .then((txBuilder) => {
-    const issueNft1ToBuyerDaoCmd = new IssueNonFungibleTokenCmd({
+    const issueNft1ToBuyerDaoCmd = new CreateNftItemCmd({
       issuer: moderatorDaoId,
       recipient: buyerDaoId,
       classId: nft1Id,
@@ -331,13 +330,13 @@ async function run() {
       const transferFt1 = new TransferFungibleTokenCmd({
         from: buyerDaoId,
         to: moderatorDaoId,
-        tokenId: DEIP_APPCHAIN_CORE_ASSET.id,
-        symbol: DEIP_APPCHAIN_CORE_ASSET.symbol,
-        precision: DEIP_APPCHAIN_CORE_ASSET.precision,
+        tokenId: CORE_ASSET.id,
+        symbol: CORE_ASSET.symbol,
+        precision: CORE_ASSET.precision,
         amount: "99999"
       });
 
-      const issueNft1ToBuyerDaoCmd = new IssueNonFungibleTokenCmd({
+      const issueNft1ToBuyerDaoCmd = new CreateNftItemCmd({
         issuer: moderatorDaoId,
         recipient: buyerDaoId,
         classId: nft1Id,

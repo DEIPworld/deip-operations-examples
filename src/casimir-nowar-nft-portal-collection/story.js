@@ -1,21 +1,14 @@
+import {
+  AcceptProposalCmd, CreateDaoCmd, CreateNftCollectionCmd,
+  CreateProposalCmd,
+  CreateNftItemCmd,
+  TransferFTCmd
+} from '@deip/commands';
+import { APP_PROPOSAL } from '@deip/constants';
+import { genRipemd160Hash, genSha256Hash } from '@deip/toolbox';
+import { randomAsHex } from '@polkadot/util-crypto';
 import config from '../config';
 import { logError, logInfo, logJsonResult } from '../log';
-import { randomAsHex } from '@polkadot/util-crypto';
-import { genRipemd160Hash, genSha256Hash } from '@deip/toolbox';
-import { APP_PROPOSAL, PROJECT_CONTENT_TYPES } from '@deip/constants';
-import { getDefaultDomain } from '../utils';
-import {
-  AcceptProposalCmd, AddDaoMemberCmd,
-  CreateDaoCmd,
-  CreateNonFungibleTokenCmd,
-  UpdateNonFungibleTokenTeamCmd,
-  UpdateNonFungibleTokenOwnerCmd,
-  CreateNftCollectionCmd,
-  CreateProposalCmd,
-  IssueNonFungibleTokenCmd,
-  TransferFungibleTokenCmd,
-  TransferNonFungibleTokenCmd,
-} from '@deip/commands';
 
 import PRE_SET from '../casimir/preset';
 
@@ -35,9 +28,9 @@ async function run() {
   const api = chainService.getChainNodeClient();
   const rpc = chainService.getChainRpc();
 
-  const DEIP_APPCHAIN_CORE_ASSET = config.DEIP_APPCHAIN_CORE_ASSET;
-  const DAO_SEED_FUNDING_AMOUNT = config.DAO_SEED_FUNDING_AMOUNT
-  const DAO_FUNDING_AMOUNT = config.DAO_FUNDING_AMOUNT;
+  const CORE_ASSET = config.CORE_ASSET;
+  const DAO_SEED_FUNDING_AMOUNT = config.FAUCET_ACCOUNT.fundingAmount
+  const DAO_FUNDING_AMOUNT = config.FAUCET_ACCOUNT.fundingAmount;
 
 
   /**
@@ -70,14 +63,14 @@ async function run() {
       txBuilder.addCmd(createDaoCmd);
       return txBuilder.end();
     });
+
   const createCreatorDaoByCreatorTx = await createCreatorDaoTx.signAsync(getDaoCreatorPrivKey(creator), api); // 1st approval from Creator DAO (final)
   await sendTxAndWaitAsync(createCreatorDaoByCreatorTx);
 
   await fundAddressFromFaucet(creatorDaoId, DAO_FUNDING_AMOUNT);
-  // await fundAddressFromFaucet(creatorDaoId, 1);
   const creatorDao = await rpc.getAccountAsync(creatorDaoId);
-  logJsonResult(`Creator DAO created`, creatorDao);
-
+  const creatorDaoBalance = await rpc.getFungibleTokenBalancesByOwnerAsync(creatorDaoId);
+  logJsonResult(`Creator DAO balance`, creatorDaoBalance);
 
 
   /**
@@ -159,10 +152,10 @@ async function run() {
    * Create NFT Class-1
    */
   logInfo(`Creating Portal Project-1 NFT Class 1 ...`);
-  const nft1Id = await rpc.getNextAvailableNftClassId();;
+  const nft1Id = await rpc.getNextAvailableNftCollectionId();;
   const createNftClass1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const createNft1Cmd = new CreateNonFungibleTokenCmd({
+      const createNft1Cmd = new CreateNftCollectionCmd({
         entityId: nft1Id,
         issuer: hotWalletDaoId,
         name: "Non-Fungible Token 1 of Project-1",
@@ -178,7 +171,7 @@ async function run() {
   await sendTxAndWaitAsync(createNftClass1TxByCreatorDao);
   logJsonResult(`Portal NFT Class 1 created`, nft1Id);
 
- 
+
   // /**
   //  * Creating lazy-mint Proposal-1 of Project-1 on behalf of Buyer DAO actor
   //  */
@@ -189,20 +182,20 @@ async function run() {
   const createProposal1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
 
-      const transferFt = new TransferFungibleTokenCmd({
+      const transferFt = new TransferFTCmd({
         from: buyerDaoId,
         to: creatorDaoId,
-        tokenId: DEIP_APPCHAIN_CORE_ASSET.id,
-        symbol: DEIP_APPCHAIN_CORE_ASSET.symbol,
-        precision: DEIP_APPCHAIN_CORE_ASSET.precision,
+        tokenId: CORE_ASSET.id,
+        symbol: CORE_ASSET.symbol,
+        precision: CORE_ASSET.precision,
         amount: "99999"
       });
 
-      const issueNft = new IssueNonFungibleTokenCmd({
+      const issueNft = new CreateNftItemCmd({
         issuer: hotWalletDaoId,
         recipient: buyerDaoId,
-        classId: nft1Id,
-        instanceId: nft1InstanceId,
+        nftCollectionId: nft1Id,
+        nftItemId: nft1InstanceId,
       });
 
       const proposal1Batch = [

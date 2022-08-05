@@ -13,9 +13,10 @@ import {
   CreatePortalCmd,
   CreateFungibleTokenCmd,
   IssueFungibleTokenCmd,
-  TransferFungibleTokenCmd,
+  TransferFTCmd,
   AddDaoMemberCmd
 } from '@deip/commands';
+import { randomAsHex } from '@polkadot/util-crypto';
 
 export default (config) => {
 
@@ -28,20 +29,26 @@ export default (config) => {
     const tenant = await createTenantDaoWithPortal();
     logInfo(`Tenant Portal is set`);
 
+    logInfo(`Setting up Tenant Hot wallet ...`);
+    // const hotWallet = await createHotWalletDao();
+    logInfo(`Tenant Hot wallet is set`);
+
+
     return {
       faucet,
-      tenant
+      tenant,
+      // hotWallet
     }
   }
 
 
   async function getChainService() {
     const chainService = await ChainService.getInstanceAsync({
-      PROTOCOL: config.DEIP_PROTOCOL_CHAIN,
-      DEIP_FULL_NODE_URL: config.DEIP_APPCHAIN_NODE_URL,
-      CORE_ASSET: config.DEIP_APPCHAIN_CORE_ASSET,
+      PROTOCOL: config.PROTOCOL,
+      DEIP_FULL_NODE_URL: config.DEIP_FULL_NODE_URL,
+      CORE_ASSET: config.CORE_ASSET,
       CHAIN_ID: config.DEIP_CHAIN_ID,
-      PORTAL_ID: config.TENANT.id
+      PORTAL_ID: config.TENANT_DATA.id
     });
     return chainService;
   }
@@ -52,14 +59,14 @@ export default (config) => {
     const chainTxBuilder = chainService.getChainTxBuilder();
     const api = chainService.getChainNodeClient();
     const rpc = chainService.getChainRpc();
-    const { username: faucetDaoId, wif: faucetSeed } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
+    const { username: faucetDaoId, wif: faucetSeed } = config.FAUCET_ACCOUNT;
 
     const existingFaucetDao = await rpc.getAccountAsync(faucetDaoId);
     if (existingFaucetDao)
       return existingFaucetDao;
 
     const owner = { auths: [], weight: 1 };
-    if (PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN) {
+    if (PROTOCOL_CHAIN.SUBSTRATE == config.PROTOCOL) {
       const seedPubKey = u8aToHex(getFaucetSeedAccount(config.DEIP_APPCHAIN_FAUCET_SUBSTRATE_SEED_ACCOUNT_JSON).publicKey).substring(2);
       owner.auths.push({ key: seedPubKey })
     } else {
@@ -88,12 +95,12 @@ export default (config) => {
     const faucetDao = await rpc.getAccountAsync(faucetDaoId);
     logJsonResult(`Faucet DAO created`, faucetDao);
 
-    if (PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN) {
+    if (PROTOCOL_CHAIN.SUBSTRATE == config.PROTOCOL) {
       const faucetDaoAddress = daoIdToSubstrateAddress(faucetDaoId, api);
       const tx = api.tx.balances.transfer(faucetDaoAddress, config.DEIP_APPCHAIN_FAUCET_BALANCE);
       await tx.signAsync(getFaucetSeedAccount(config.DEIP_APPCHAIN_FAUCET_SUBSTRATE_SEED_ACCOUNT_JSON));
       await api.rpc.author.submitExtrinsic(tx.toHex());
-      await waitAsync(config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK);
+      await waitAsync(config.CHAIN_BLOCK_INTERVAL_MILLIS);
     }
 
     await createCoreTokenAssetMarker();
@@ -106,7 +113,7 @@ export default (config) => {
     const chainTxBuilder = chainService.getChainTxBuilder();
     const api = chainService.getChainNodeClient();
     const rpc = chainService.getChainRpc();
-    const { id: tenantDaoId, privKey: tenantPrivKey, members } = config.TENANT;
+    const { id: tenantDaoId, privKey: tenantPrivKey, members } = config.TENANT_DATA;
     const { pubKey: verificationPubKey } = config.TENANT_PORTAL;
     const tenantSeed = await chainService.generateChainSeedAccount({ username: tenantDaoId, privateKey: tenantPrivKey });
 
@@ -114,7 +121,7 @@ export default (config) => {
 
     if (!existingTenantDao) {
       logInfo(`Creating Tenant DAO ...`);
-      await fundAddressFromFaucet(tenantSeed.getPubKey(), config.DAO_SEED_FUNDING_AMOUNT);
+      await fundAddressFromFaucet(tenantSeed.getPubKey(), config.FAUCET_ACCOUNT.fundingAmount);
       const createTenantDaoTx = await chainTxBuilder.begin({ ignorePortalSig: true })
         .then((txBuilder) => {
           const createDaoCmd = new CreateDaoCmd({
@@ -137,7 +144,7 @@ export default (config) => {
 
       const createTenantDaoBytenantSeedTx = await createTenantDaoTx.signAsync(getDaoCreatorPrivKey(tenantSeed), api);
       await sendTxAndWaitAsync(createTenantDaoBytenantSeedTx);
-      await fundAddressFromFaucet(tenantDaoId, config.DAO_FUNDING_AMOUNT);
+      await fundAddressFromFaucet(tenantDaoId, config.FAUCET_ACCOUNT.fundingAmount);
 
       const createdTenantDao = await rpc.getAccountAsync(tenantDaoId);
       logJsonResult(`Tenant DAO created`, createdTenantDao);
@@ -160,7 +167,7 @@ export default (config) => {
       logJsonResult(`Tenant Portal created`, portal);
 
       logInfo(`Funding Tenant Portal ...`);
-      await fundAddressFromFaucet(verificationPubKey, config.DAO_SEED_FUNDING_AMOUNT);
+      await fundAddressFromFaucet(verificationPubKey, config.FAUCET_ACCOUNT.fundingAmount);
       logInfo(`End funding Tenant Portal`);
     }
 
@@ -173,7 +180,7 @@ export default (config) => {
       const existingTenantMemberDao = await rpc.getAccountAsync(tenantMemberDaoId);
       if (!existingTenantMemberDao) {
         logInfo(`Creating Tenant Member DAO ...`);
-        await fundAddressFromFaucet(tenantMember.getPubKey(), config.DAO_SEED_FUNDING_AMOUNT);
+        await fundAddressFromFaucet(tenantMember.getPubKey(), config.FAUCET_ACCOUNT.fundingAmount);
         const createTenantMemberDaoTx = await chainTxBuilder.begin({ ignorePortalSig: true })
           .then((txBuilder) => {
             const createDaoCmd = new CreateDaoCmd({
@@ -197,7 +204,7 @@ export default (config) => {
 
         const createTenantMemberDaoBytenantSeedTx = await createTenantMemberDaoTx.signAsync(getDaoCreatorPrivKey(tenantMember), api);
         await sendTxAndWaitAsync(createTenantMemberDaoBytenantSeedTx);
-        await fundAddressFromFaucet(tenantMemberDaoId, config.DAO_FUNDING_AMOUNT);
+        await fundAddressFromFaucet(tenantMemberDaoId, config.FAUCET_ACCOUNT.fundingAmount);
 
         const createdTenantMemberDao = await rpc.getAccountAsync(tenantDaoId);
         logJsonResult(`Tenant Member DAO`, createdTenantMemberDao);
@@ -232,14 +239,58 @@ export default (config) => {
   }
 
 
+  async function createHotWalletDao() {
+    logInfo(`Creating HotWallet DAO ...`);
+
+    const chainService = await getChainService();
+    const chainTxBuilder = chainService.getChainTxBuilder();
+    const api = chainService.getChainNodeClient();
+    const rpc = chainService.getChainRpc();
+
+    const hotWalletDaoId = genRipemd160Hash(randomAsHex(20));
+    const hotWallet = await chainService.generateChainSeedAccount({ username: hotWalletDaoId, password: randomAsHex(32) });
+    await fundAddressFromFaucet(hotWallet.getPubKey(), config.FAUCET_ACCOUNT.fundingAmount);
+    const createHotWalletDaoTx = await chainTxBuilder.begin()
+      .then((txBuilder) => {
+        const createDaoCmd = new CreateDaoCmd({
+          entityId: hotWalletDaoId,
+          authority: {
+            owner: {
+              auths: [
+                { key: hotWallet.getPubKey(), weight: 1 },
+              ],
+              weight: 1
+            }
+          },
+          creator: getDaoCreator(hotWallet),
+          description: genSha256Hash({ "description": "HotWallet DAO" }),
+          // offchain
+          isTeamAccount: false,
+          attributes: []
+        });
+
+        txBuilder.addCmd(createDaoCmd);
+        return txBuilder.end();
+      });
+    const createHotWalletDaoByHotWalletTx = await createHotWalletDaoTx.signAsync(getDaoCreatorPrivKey(hotWallet), api); // 1st approval from HotWallet DAO (final)
+    await sendTxAndWaitAsync(createHotWalletDaoByHotWalletTx);
+
+    await fundAddressFromFaucet(hotWalletDaoId, config.FAUCET_ACCOUNT.fundingAmount);
+    const hotWalletDao = await rpc.getAccountAsync(hotWalletDaoId);
+    logJsonResult(`HotWallet DAO created`, hotWalletDao);
+
+    return hotWalletDao;
+  }
+
+
   async function createCoreTokenAssetMarker() {
     const chainService = await getChainService();
     const chainTxBuilder = chainService.getChainTxBuilder();
     const api = chainService.getChainNodeClient();
     const rpc = chainService.getChainRpc();
-    const { username: faucetDaoId, wif: faucetSeed } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
+    const { username: faucetDaoId, wif: faucetSeed } = config.FAUCET_ACCOUNT;
 
-    const coreToken = config.DEIP_APPCHAIN_CORE_ASSET;
+    const coreToken = config.CORE_ASSET;
     const { id: assetId, symbol, precision } = coreToken;
 
     const existingAsset = await rpc.getFungibleTokenAsync(assetId);
@@ -280,7 +331,7 @@ export default (config) => {
     const chainTxBuilder = chainService.getChainTxBuilder();
     const api = chainService.getChainNodeClient();
     const rpc = chainService.getChainRpc();
-    const { username: faucetDaoId, wif: faucetSeed } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
+    const { username: faucetDaoId, wif: faucetSeed } = config.FAUCET_ACCOUNT;
     const stablecoins = config.DEIP_APPCHAIN_FAUCET_STABLECOINS;
 
     const assets = [];
@@ -332,8 +383,8 @@ export default (config) => {
   }
 
   function getDaoCreator(seed) {
-    const { username: faucetDaoId } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
-    if (PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN) {
+    const { username: faucetDaoId } = config.FAUCET_ACCOUNT;
+    if (PROTOCOL_CHAIN.SUBSTRATE == config.PROTOCOL) {
       return seed.getUsername();
     }
     return faucetDaoId;
@@ -341,8 +392,8 @@ export default (config) => {
 
 
   function getDaoCreatorPrivKey(seed) {
-    const { wif: faucetSeed } = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
-    if (PROTOCOL_CHAIN.SUBSTRATE == config.DEIP_PROTOCOL_CHAIN) {
+    const { wif: faucetSeed } = config.FAUCET_ACCOUNT;
+    if (PROTOCOL_CHAIN.SUBSTRATE == config.PROTOCOL) {
       return seed.getPrivKey();
     }
     return faucetSeed;
@@ -355,18 +406,18 @@ export default (config) => {
     const chainService = await getChainService();
     const chainTxBuilder = chainService.getChainTxBuilder();
     const api = chainService.getChainNodeClient();
-    const DEIP_APPCHAIN_FAUCET_ACCOUNT = config.DEIP_APPCHAIN_FAUCET_ACCOUNT;
-    const DEIP_APPCHAIN_CORE_ASSET = config.DEIP_APPCHAIN_CORE_ASSET;
-    const { username: faucetDaoId, wif: faucetSeed } = DEIP_APPCHAIN_FAUCET_ACCOUNT;
+    const FAUCET_ACCOUNT = config.FAUCET_ACCOUNT;
+    const CORE_ASSET = config.CORE_ASSET;
+    const { username: faucetDaoId, wif: faucetSeed } = FAUCET_ACCOUNT;
 
     const fundDaoTx = await chainTxBuilder.begin({ ignorePortalSig: true })
       .then((txBuilder) => {
-        const transferAssetCmd = new TransferFungibleTokenCmd({
+        const transferAssetCmd = new TransferFTCmd({
           from: faucetDaoId,
           to: daoIdOrPubKey,
-          tokenId: DEIP_APPCHAIN_CORE_ASSET.id,
-          symbol: DEIP_APPCHAIN_CORE_ASSET.symbol,
-          precision: DEIP_APPCHAIN_CORE_ASSET.precision,
+          tokenId: CORE_ASSET.id,
+          symbol: CORE_ASSET.symbol,
+          precision: CORE_ASSET.precision,
           amount: amount
         });
 
@@ -379,7 +430,7 @@ export default (config) => {
   }
 
 
-  async function sendTxAndWaitAsync(finalizedTx, timeout = config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK) {
+  async function sendTxAndWaitAsync(finalizedTx, timeout = config.CHAIN_BLOCK_INTERVAL_MILLIS) {
     const chainService = await getChainService();
     const rpc = chainService.getChainRpc();
     const api = chainService.getChainNodeClient();

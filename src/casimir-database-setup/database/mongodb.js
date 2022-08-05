@@ -77,23 +77,38 @@ const deleteOneOperationFunc = (collection, query) =>
 const findOneOperationFunc = (collection, query) =>
     dbClient => dbClient.collection(collection).findOne(query)
 
+const findManyOperationFunc = (collection, query) =>
+    dbClient => dbClient.collection(collection).find(query).toArray()
+
 const insertOneOperationFunc = (collection, data) =>
     dbClient => dbClient.collection(collection).insertOne(data)
+
+const updateOneOperationFunc = (collection, query, data) =>
+    dbClient => dbClient.collection(collection).updateOne(query, data)
+
+const updateManyOperationFunc = (collection, query, data) =>
+    dbClient => dbClient.collection(collection).updateMany(query, data)
 
 const dropDataOperationFunc = () =>
     dbClient => dbClient.dropDatabase();
 
 const dropDatabase = performOperation(dropDataOperationFunc);
 const findOne = performOperation(findOneOperationFunc);
+const findMany = performOperation(findManyOperationFunc);
 const deleteOne = performOperation(deleteOneOperationFunc);
 const insertOne = performOperation(insertOneOperationFunc);
+const updateOne = performOperation(updateOneOperationFunc);
+const updateMany = performOperation(updateManyOperationFunc);
 
 
 
 export {
     restoreFromDump,
     findOne,
+    findMany,
     deleteOne,
     insertOne,
-    dropDatabase
+    dropDatabase,
+    updateOne,
+    updateMany
 };
