@@ -21,8 +21,8 @@ import {
   DeclineProposalCmd,
   CreateFungibleTokenCmd,
   IssueFungibleTokenCmd,
-  CreateNonFungibleTokenCmd,
-  IssueNonFungibleTokenCmd,
+  CreateNftCollectionCmd,
+  CreateNftItemCmd,
   CreateInvestmentOpportunityCmd,
   InvestCmd,
   CreateContractAgreementCmd,
@@ -52,9 +52,9 @@ async function run() {
   const api = chainService.getChainNodeClient();
   const rpc = chainService.getChainRpc();
   
-  const DEIP_APPCHAIN_CORE_ASSET = config.DEIP_APPCHAIN_CORE_ASSET;
-  const DAO_SEED_FUNDING_AMOUNT = config.DAO_SEED_FUNDING_AMOUNT
-  const DAO_FUNDING_AMOUNT = config.DAO_FUNDING_AMOUNT;
+  const CORE_ASSET = config.CORE_ASSET;
+  const DAO_SEED_FUNDING_AMOUNT = config.FAUCET_ACCOUNT.fundingAmount;
+  const DAO_FUNDING_AMOUNT = config.FAUCET_ACCOUNT.fundingAmount;
 
   /**
    * Create Alice DAO actor
@@ -743,18 +743,18 @@ async function run() {
       const fundProject4Cmd = new TransferAssetCmd({
         from: charlieDaoId,
         to: bobDaveDaoId,
-        tokenId: DEIP_APPCHAIN_CORE_ASSET.id,
-        symbol: DEIP_APPCHAIN_CORE_ASSET.symbol,
-        precision: DEIP_APPCHAIN_CORE_ASSET.precision,
+        tokenId: CORE_ASSET.id,
+        symbol: CORE_ASSET.symbol,
+        precision: CORE_ASSET.precision,
         amount: "1000000000"
       });
 
       const fundProject3Cmd = new TransferAssetCmd({
         from: multigroup1DaoId,
         to: aliceBobDaoId,
-        tokenId: DEIP_APPCHAIN_CORE_ASSET.id,
-        symbol: DEIP_APPCHAIN_CORE_ASSET.symbol,
-        precision: DEIP_APPCHAIN_CORE_ASSET.precision,
+        tokenId: CORE_ASSET.id,
+        symbol: CORE_ASSET.symbol,
+        precision: CORE_ASSET.precision,
         amount: "1000000000"
       });
 
@@ -1037,7 +1037,7 @@ async function run() {
   const nft2Id = genRipemd160Hash(randomAsHex(20));
   const createNft2Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const createNft2Cmd = new CreateNonFungibleTokenCmd({
+      const createNft2Cmd = new CreateNftCollectionCmd({
         entityId: nft2Id,
         issuer: aliceDaoId,
         name: "Non-Fungible Token 2 of Project-1",
@@ -1065,7 +1065,7 @@ async function run() {
   logInfo(`Issuing some NFT-2 to Alice Dao ...`);
   const issueNft2ToAliceDaoTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const issueNft2ToAliceDaoCmd = new IssueNonFungibleTokenCmd({
+      const issueNft2ToAliceDaoCmd = new CreateNftItemCmd({
         issuer: aliceDaoId,
         classId: nft2Id,
         instanceId: 1,
@@ -1083,7 +1083,7 @@ async function run() {
   logInfo(`Issuing some NFT-2 to Bob Dao ...`);
   const issueNft2ToBobDaoTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const issueNft2ToBobDaoCmd = new IssueNonFungibleTokenCmd({
+      const issueNft2ToBobDaoCmd = new CreateNftItemCmd({
         issuer: aliceDaoId,
         classId: nft2Id,
         instanceId: 2,
@@ -1105,7 +1105,7 @@ async function run() {
   const nft3Id = genRipemd160Hash(randomAsHex(20));
   const createNft3Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const createNft3Cmd = new CreateNonFungibleTokenCmd({
+      const createNft3Cmd = new CreateNftCollectionCmd({
         entityId: nft3Id,
         issuer: aliceDaoId,
         name: "Non-Fungible Token 3 of Project-1",
@@ -1132,7 +1132,7 @@ async function run() {
   logInfo(`Issuing some NFT-3 to Alice Dao ...`);
   const issueNft3ToAliceDaoTx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const issueNft3ToAliceDaoCmd = new IssueNonFungibleTokenCmd({
+      const issueNft3ToAliceDaoCmd = new CreateNftItemCmd({
         issuer: aliceDaoId,
         classId: nft3Id,
         instanceId: 1,
@@ -1201,7 +1201,7 @@ async function run() {
   logJsonResult(`InvestmentOpportunity-1 created`, invstOpp1);
 
   logInfo(`Waiting for InvestmentOpportunity-1 activation time ...\n`);
-  await waitAsync(invstOpp1StartsInMillisecs + config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK);
+  await waitAsync(invstOpp1StartsInMillisecs + config.CHAIN_BLOCK_INTERVAL_MILLIS);
 
 
 
@@ -1285,7 +1285,7 @@ async function run() {
   logJsonResult(`LicenseAgreement-1 between Alice Dao and Charlie Dao parties is initiated`, initiatedLicenseAgreement1);
 
   logInfo(`Waiting for LicenseAgreement-1 signing period activation time ...\n`);
-  await waitAsync(licenseAgreement1SigningActivatesInMillisecs + config.DEIP_APPCHAIN_MILLISECS_PER_BLOCK);
+  await waitAsync(licenseAgreement1SigningActivatesInMillisecs + config.CHAIN_BLOCK_INTERVAL_MILLIS);
 
 
 
