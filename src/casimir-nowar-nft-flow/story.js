@@ -8,8 +8,6 @@ import {
   AcceptProposalCmd, AddDaoMemberCmd,
   CreateDaoCmd,
   CreateNftCollectionCmd,
-  // CreateProjectCmd,
-  // CreateProjectContentCmd,
   CreateProposalCmd,
   CreateNftItemCmd,
   TransferFTCmd,
@@ -221,115 +219,7 @@ async function run() {
   logJsonResult(`Buyer DAO created`, buyerDao);
 
 
-  /**
-   * Create Project on behalf of Creator DAO actor
-   */
-  // logInfo(`Creating Creator DAO Project-1 ...`);
-  // const project1Id = genRipemd160Hash(randomAsHex(20));
-  // const defaultDomainHex = getDefaultDomain();
-  // const defaultDomainId = defaultDomainHex.substring(2, defaultDomainHex.length);
-  // const createProject1Tx = await chainTxBuilder.begin()
-  //   .then((txBuilder) => {
-  //     const createProjectCmd = new CreateProjectCmd({
-  //       entityId: project1Id,
-  //       description: genSha256Hash({ "description": "Creator DAO Project" }),
-  //       teamId: creatorDaoId,
-  //       isPrivate: false,
-  //       domains: [defaultDomainId]
-  //     });
-  //     txBuilder.addCmd(createProjectCmd);
-  //     return txBuilder.end();
-  //   });
-  // const createProject1ByCreatorDaoTx = await createProject1Tx.signAsync(creator.getPrivKey(), api); // 1st approval from Creator DAO (final)
-  // await sendTxAndWaitAsync(createProject1ByCreatorDaoTx);
-  // const project1 = await rpc.getProjectAsync(project1Id);
-  // logJsonResult(`Creator DAO Project-1 created`, project1);
-
-  // const creatorDaoCoreAssetBalance = await rpc.getFungibleTokenBalanceByOwnerAsync(creatorDaoId, CORE_ASSET.id);
-  // logJsonResult(`Creator Dao CoreAsset balance after CreateProjectCmd`, creatorDaoCoreAssetBalance);
-
-  // /**
-  //  * Creating lazy-mint Proposal-1 of Project-1 on behalf of Buyer DAO actor
-  //  */
-  // logInfo(`Creating lazy-mint Proposal-1 on behalf of Buyer DAO actor ...`);
-  // const proposal1Id = genRipemd160Hash(randomAsHex(20));
-  // const project1Content1Id = genRipemd160Hash(randomAsHex(20));
-  // const nft1Id = genRipemd160Hash(randomAsHex(20));
-  // const nft1InstanceId = 1;
-  // let proposal1BatchWeight;
-  // const createProposal1Tx = await chainTxBuilder.begin()
-  //   .then((txBuilder) => {
-
-  //     const transferFt1 = new TransferFTCmd({
-  //       from: buyerDaoId,
-  //       to: moderatorDaoId,
-  //       tokenId: CORE_ASSET.id,
-  //       symbol: CORE_ASSET.symbol,
-  //       precision: CORE_ASSET.precision,
-  //       amount: "99999"
-  //     });
-
-  //     const createProjectContentCmd = new CreateProjectContentCmd({
-  //       entityId: project1Content1Id,
-  //       projectId: project1Id,
-  //       teamId: creatorDaoId,
-  //       type: PROJECT_CONTENT_TYPES.MILESTONE_CHAPTER,
-  //       description: genSha256Hash({ "description": "Meta for Content-1 of Project-1" }),
-  //       contentType: 1,
-  //       content: genSha256Hash({ "description": "Data of Content-1 of Project-1" }),
-  //       authors: [creatorDaoId],
-  //       references: []
-  //     });
-
-  //     const createNft1Cmd = new CreateNftCollectionCmd({
-  //       entityId: nft1Id,
-  //       issuer: creatorDaoId,
-  //       admin: creatorDaoId,
-  //       name: "Non-Fungible Token 1 of Project-1",
-  //       symbol: "NFT1",
-  //       description: "",
-  //       projectTokenSettings: {
-  //         projectId: project1Id,
-  //         teamId: creatorDaoId
-  //       }
-  //     });
-
-  //     const issueNft1ToBuyerDaoCmd = new CreateNftItemCmd({
-  //       issuer: creatorDaoId,
-  //       recipient: buyerDaoId,
-  //       classId: nft1Id,
-  //       instanceId: nft1InstanceId,
-  //     });
-
-  //     const proposal1Batch = [
-  //       transferFt1,
-  //       createProjectContentCmd,
-  //       createNft1Cmd,
-  //       issueNft1ToBuyerDaoCmd
-  //     ];
-
-  //     return chainTxBuilder.getBatchWeight(proposal1Batch)
-  //       .then((batchWeight) => {
-  //         proposal1BatchWeight = batchWeight;
-
-  //         const createProposalCmd = new CreateProposalCmd({
-  //           entityId: proposal1Id,
-  //           type: APP_PROPOSAL.PROJECT_PROPOSAL,
-  //           creator: buyerDaoId,
-  //           expirationTime: Date.now() + 3e6,
-  //           proposedCmds: proposal1Batch,
-  //         });
-
-  //         txBuilder.addCmd(createProposalCmd);
-  //         return txBuilder.end();
-  //       })
-  //   });
-
-  // const createProposal1ByBuyerDaoTx = await createProposal1Tx.signAsync(buyer.getPrivKey(), api); // 1st approval from Buyer DAO (final)
-  // await sendTxAndWaitAsync(createProposal1ByBuyerDaoTx);
-  // const proposal1 = await rpc.getProposalAsync(proposal1Id);
-  // logJsonResult(`Buyer DAO Proposal-1 created`, proposal1);
-
+  
   /**
    * Approve Proposal-1 created by Buyer Dao actor on behalf of all required actors:
    * Buyer Dao actor
