@@ -1,6 +1,6 @@
 import { logInfo, logSuccess, logError, logJsonResult } from './../log';
 import { genSha256Hash, genRipemd160Hash } from '@deip/toolbox';
-import { PROTOCOL_CHAIN } from '@casimir/platform-core';
+import { ProtocolChain } from '@casimir/platform-core';
 import { ChainService } from '@deip/chain-service';
 import { u8aToHex } from '@polkadot/util';
 import {
@@ -66,7 +66,7 @@ export default (config) => {
       return existingFaucetDao;
 
     const owner = { auths: [], weight: 1 };
-    if (PROTOCOL_CHAIN.SUBSTRATE == config.PROTOCOL) {
+    if (ProtocolChain.SUBSTRATE == config.PROTOCOL) {
       const seedPubKey = u8aToHex(getFaucetSeedAccount(config.DEIP_APPCHAIN_FAUCET_SUBSTRATE_SEED_ACCOUNT_JSON).publicKey).substring(2);
       owner.auths.push({ key: seedPubKey })
     } else {
@@ -95,7 +95,7 @@ export default (config) => {
     const faucetDao = await rpc.getAccountAsync(faucetDaoId);
     logJsonResult(`Faucet DAO created`, faucetDao);
 
-    if (PROTOCOL_CHAIN.SUBSTRATE == config.PROTOCOL) {
+    if (ProtocolChain.SUBSTRATE == config.PROTOCOL) {
       const faucetDaoAddress = daoIdToSubstrateAddress(faucetDaoId, api);
       const tx = api.tx.balances.transfer(faucetDaoAddress, config.DEIP_APPCHAIN_FAUCET_BALANCE);
       await tx.signAsync(getFaucetSeedAccount(config.DEIP_APPCHAIN_FAUCET_SUBSTRATE_SEED_ACCOUNT_JSON));
@@ -384,7 +384,7 @@ export default (config) => {
 
   function getDaoCreator(seed) {
     const { username: faucetDaoId } = config.FAUCET_ACCOUNT;
-    if (PROTOCOL_CHAIN.SUBSTRATE == config.PROTOCOL) {
+    if (ProtocolChain.SUBSTRATE == config.PROTOCOL) {
       return seed.getUsername();
     }
     return faucetDaoId;
@@ -393,7 +393,7 @@ export default (config) => {
 
   function getDaoCreatorPrivKey(seed) {
     const { wif: faucetSeed } = config.FAUCET_ACCOUNT;
-    if (PROTOCOL_CHAIN.SUBSTRATE == config.PROTOCOL) {
+    if (ProtocolChain.SUBSTRATE == config.PROTOCOL) {
       return seed.getPrivKey();
     }
     return faucetSeed;
