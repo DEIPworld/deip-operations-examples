@@ -41,26 +41,29 @@ const config = {
   TENANT_PORTAL: parseJsonEnvVar('TENANT_PORTAL', {}),
   TENANT_PORTAL_READ_MODELS_STORAGE: parseJsonEnvVar('TENANT_PORTAL_READ_MODELS_STORAGE', null),
 
-  DB_DRIVER: "mongodb",
-  TENANT_DUMP_CONFIG: {
-    "portal": {
-      "_id": "0000000000000000000000000000000000000001",
-      "name": "Nowar-testnet"
-    },
-    "userDao": {
-      "_id": "4c583bd4ff9a48d801ea71f2cad6fea123122cf7"
+  // Config for portal generation
+  TENANT_GENERATE_PORTAL_CONFIG: {
+    portal: {
+      // "_id": "9000000000000000000000000000000000000001",
+      name: "portal-testnet",
+      shortName: "portal-name",
+      description: "portal-description",
+      serverUrl: "https://portal.server.url",
+      email: "root.user@email",
     },
   },
-  TENANT_GENERATE_PORTAL_CONFIG: {
-    "portal": {
-      // "_id": "9000000000000000000000000000000000000001",
-      "name": "Nowar-testnet-dump-1",
-      "shortName": "Nowar testnet dumm 1",
-      "description": "Nowar description dump 1",
-      "serverUrl": "https://nowar.deip.world",
-      "email": "nowartestnetdump1@deip.world",
+
+  //DUMP DATA MARKERS, DO NOT CHANGE IT IF YOU DON'T KNOW WHAT YOU ARE DOING
+  DB_DRIVER: "mongodb",
+  TENANT_DUMP_CONFIG: {
+    portal: {
+      _id: "0000000000000000000000000000000000000001",
+      name: "Nowar-testnet"
     },
-  }
+    userDao: {
+      _id: "4c583bd4ff9a48d801ea71f2cad6fea123122cf7"
+    },
+  },
 };
 
 module.exports = config;

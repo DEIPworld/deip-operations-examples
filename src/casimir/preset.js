@@ -1,6 +1,6 @@
 import { logInfo, logSuccess, logError, logJsonResult } from './../log';
 import { genSha256Hash, genRipemd160Hash } from '@deip/toolbox';
-import { PROTOCOL_CHAIN } from '@deip/constants';
+import { ProtocolChain } from '@casimir/platform-core';
 import { ChainService } from '@deip/chain-service';
 import { u8aToHex } from '@polkadot/util';
 import {
@@ -11,8 +11,8 @@ import {
 import {
   CreateDaoCmd,
   CreatePortalCmd,
-  CreateFungibleTokenCmd,
-  IssueFungibleTokenCmd,
+  CreateFTClassCmd,
+  IssueFTCmd,
   TransferFTCmd,
   AddDaoMemberCmd
 } from '@deip/commands';
@@ -30,14 +30,14 @@ export default (config) => {
     logInfo(`Tenant Portal is set`);
 
     logInfo(`Setting up Tenant Hot wallet ...`);
-    // const hotWallet = await createHotWalletDao();
+    const hotWallet = await createHotWalletDao();
     logInfo(`Tenant Hot wallet is set`);
 
 
     return {
       faucet,
       tenant,
-      // hotWallet
+      hotWallet
     }
   }
 
@@ -66,7 +66,7 @@ export default (config) => {
       return existingFaucetDao;
 
     const owner = { auths: [], weight: 1 };
-    if (PROTOCOL_CHAIN.SUBSTRATE == config.PROTOCOL) {
+    if (ProtocolChain.SUBSTRATE == config.PROTOCOL) {
       const seedPubKey = u8aToHex(getFaucetSeedAccount(config.DEIP_APPCHAIN_FAUCET_SUBSTRATE_SEED_ACCOUNT_JSON).publicKey).substring(2);
       owner.auths.push({ key: seedPubKey })
     } else {
@@ -95,7 +95,7 @@ export default (config) => {
     const faucetDao = await rpc.getAccountAsync(faucetDaoId);
     logJsonResult(`Faucet DAO created`, faucetDao);
 
-    if (PROTOCOL_CHAIN.SUBSTRATE == config.PROTOCOL) {
+    if (ProtocolChain.SUBSTRATE == config.PROTOCOL) {
       const faucetDaoAddress = daoIdToSubstrateAddress(faucetDaoId, api);
       const tx = api.tx.balances.transfer(faucetDaoAddress, config.DEIP_APPCHAIN_FAUCET_BALANCE);
       await tx.signAsync(getFaucetSeedAccount(config.DEIP_APPCHAIN_FAUCET_SUBSTRATE_SEED_ACCOUNT_JSON));
@@ -302,7 +302,7 @@ export default (config) => {
     const createAndIssueAssetTx = await chainTxBuilder.begin({ ignorePortalSig: true })
       .then((txBuilder) => {
         const maxSupply = 999999999999999;
-        const createFungibleTokenCmd = new CreateFungibleTokenCmd({
+        const createFTClassCmd = new CreateFTClassCmd({
           entityId: assetId,
           issuer: faucetDaoId,
           name: `Asset ${symbol}`,
@@ -312,7 +312,7 @@ export default (config) => {
           minBalance: 1,
           maxSupply: maxSupply
         });
-        txBuilder.addCmd(createFungibleTokenCmd);
+        txBuilder.addCmd(createFTClassCmd);
 
         return txBuilder.end();
       });
@@ -349,7 +349,7 @@ export default (config) => {
       const createAndIssueAssetTx = await chainTxBuilder.begin({ ignorePortalSig: true })
         .then((txBuilder) => {
           const maxSupply = 999999999999999;
-          const createFungibleTokenCmd = new CreateFungibleTokenCmd({
+          const createFTClassCmd = new CreateFTClassCmd({
             entityId: assetId,
             issuer: faucetDaoId,
             name: `Asset ${symbol}`,
@@ -359,15 +359,15 @@ export default (config) => {
             minBalance: 1,
             maxSupply: maxSupply
           });
-          txBuilder.addCmd(createFungibleTokenCmd);
+          txBuilder.addCmd(createFTClassCmd);
 
-          const issueFungibleTokenCmd = new IssueFungibleTokenCmd({
+          const issueFTCmd = new IssueFTCmd({
             issuer: faucetDaoId,
             tokenId: assetId,
             amount: maxSupply,
             recipient: faucetDaoId
           });
-          txBuilder.addCmd(issueFungibleTokenCmd);
+          txBuilder.addCmd(issueFTCmd);
 
           return txBuilder.end();
         });
@@ -384,7 +384,7 @@ export default (config) => {
 
   function getDaoCreator(seed) {
     const { username: faucetDaoId } = config.FAUCET_ACCOUNT;
-    if (PROTOCOL_CHAIN.SUBSTRATE == config.PROTOCOL) {
+    if (ProtocolChain.SUBSTRATE == config.PROTOCOL) {
       return seed.getUsername();
     }
     return faucetDaoId;
@@ -393,7 +393,7 @@ export default (config) => {
 
   function getDaoCreatorPrivKey(seed) {
     const { wif: faucetSeed } = config.FAUCET_ACCOUNT;
-    if (PROTOCOL_CHAIN.SUBSTRATE == config.PROTOCOL) {
+    if (ProtocolChain.SUBSTRATE == config.PROTOCOL) {
       return seed.getPrivKey();
     }
     return faucetSeed;

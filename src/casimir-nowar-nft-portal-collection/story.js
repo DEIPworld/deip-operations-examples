@@ -4,7 +4,7 @@ import {
   CreateNftItemCmd,
   TransferFTCmd
 } from '@deip/commands';
-import { APP_PROPOSAL } from '@deip/constants';
+import { APP_PROPOSAL } from '@casimir/platform-core';
 import { genRipemd160Hash, genSha256Hash } from '@deip/toolbox';
 import { randomAsHex } from '@polkadot/util-crypto';
 import config from '../config';
