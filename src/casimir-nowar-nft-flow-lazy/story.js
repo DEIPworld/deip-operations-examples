@@ -2,7 +2,7 @@ import config from '../config';
 import { logError, logInfo, logJsonResult } from '../log';
 import { randomAsHex } from '@polkadot/util-crypto';
 import { genRipemd160Hash, genSha256Hash } from '@deip/toolbox';
-import { APP_PROPOSAL, PROJECT_CONTENT_TYPES } from '@deip/constants';
+import { APP_PROPOSAL } from '@casimir/platform-core';
 import { getDefaultDomain } from '../utils';
 import {
   AcceptProposalCmd, AddDaoMemberCmd,

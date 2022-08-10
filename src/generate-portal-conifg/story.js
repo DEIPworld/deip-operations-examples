@@ -99,7 +99,7 @@ run()
     } = result;
     console.log(process.env.NODE_ENV_PATH, 'qqqqqqqqqqqqqqqqqqqq')
     if (process.env.NODE_ENV_PATH) {
-      const additionalСonfigData = [
+      const additionalConfigData = [
         '\n',
         `TENANT_DATA=${JSON.stringify(TENANT)}`,
         `TENANT="${TENANT.id}"`,
@@ -108,7 +108,7 @@ run()
         `TENANT_HOT_WALLET_DAO_ID='${TENANT_HOT_WALLET.daoId}'`,
       ].join('\n');
 
-      fs.appendFileSync(process.env.NODE_ENV_PATH, additionalСonfigData)
+      fs.appendFileSync(process.env.NODE_ENV_PATH, additionalConfigData)
     }
 
     return result;

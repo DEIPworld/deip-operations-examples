@@ -2,14 +2,12 @@ import config from '../config';
 import { logError, logInfo, logJsonResult } from '../log';
 import { randomAsHex } from '@polkadot/util-crypto';
 import { genRipemd160Hash, genSha256Hash } from '@deip/toolbox';
-import { APP_PROPOSAL, PROJECT_CONTENT_TYPES } from '@deip/constants';
+import { APP_PROPOSAL } from '@casimir/platform-core';
 import { getDefaultDomain } from '../utils';
 import {
   AcceptProposalCmd, AddDaoMemberCmd,
   CreateDaoCmd,
   CreateNftCollectionCmd,
-  CreateProjectCmd,
-  CreateProjectContentCmd,
   CreateProposalCmd,
   CreateNftItemCmd,
   TransferFTCmd,
@@ -329,7 +327,7 @@ async function run() {
   await sendTxAndWaitAsync(createProposal1ByBuyerDaoTx);
   const proposal1 = await rpc.getProposalAsync(proposal1Id);
   logJsonResult(`Buyer DAO Proposal-1 created`, proposal1);
-
+  
   /**
    * Approve Proposal-1 created by Buyer Dao actor on behalf of all required actors:
    * Buyer Dao actor

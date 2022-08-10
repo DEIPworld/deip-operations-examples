@@ -2,7 +2,7 @@ import config from './../config';
 import { logInfo, logSuccess, logError, logJsonResult } from './../log';
 import { randomAsHex } from '@polkadot/util-crypto';
 import { genSha256Hash, genRipemd160Hash } from '@deip/toolbox';
-import { APP_PROPOSAL, CONTRACT_AGREEMENT_TYPE, PROJECT_CONTENT_TYPES, ASSET_TYPE } from '@deip/constants';
+import { APP_PROPOSAL, CONTRACT_AGREEMENT_TYPE, AssetType } from '@casimir/platform-core';
 import {
   waitAsync, 
   getDefaultDomain
@@ -11,16 +11,12 @@ import {
   CreateDaoCmd,
   UpdateDaoCmd,
   AlterDaoAuthorityCmd,
-  CreateProjectCmd,
-  UpdateProjectCmd,
-  CreateProjectContentCmd,
-  CreateReviewCmd,
   UpvoteReviewCmd,
   CreateProposalCmd,
   AcceptProposalCmd,
   DeclineProposalCmd,
-  CreateFungibleTokenCmd,
-  IssueFungibleTokenCmd,
+  CreateFTClassCmd,
+  IssueFTCmd,
   CreateNftCollectionCmd,
   CreateNftItemCmd,
   CreateInvestmentOpportunityCmd,
@@ -877,7 +873,7 @@ async function run() {
   const stablecoin1Id = genRipemd160Hash(randomAsHex(20));
   const createStablecoin1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const createStablecoin1Cmd = new CreateFungibleTokenCmd({
+      const createStablecoin1Cmd = new CreateFTClassCmd({
         entityId: stablecoin1Id,
         issuer: treasuryDaoId,
         name: "Stabelcoin for USD",
@@ -904,7 +900,7 @@ async function run() {
   logInfo(`Issuing Stabelcoin-1 to Bob Dao, Eve Dao and Charlie Dao ...`);
   const issueStablecoin1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const issueStabelcoin1ToBobDaoCmd = new IssueFungibleTokenCmd({
+      const issueStabelcoin1ToBobDaoCmd = new IssueFTCmd({
         issuer: treasuryDaoId,
         tokenId: stablecoin1Id,
         symbol: "USDD",
@@ -914,7 +910,7 @@ async function run() {
       });
       txBuilder.addCmd(issueStabelcoin1ToBobDaoCmd);
 
-      const issueStabelcoin1ToEveDaoCmd = new IssueFungibleTokenCmd({
+      const issueStabelcoin1ToEveDaoCmd = new IssueFTCmd({
         issuer: treasuryDaoId,
         tokenId: stablecoin1Id,
         symbol: "USDD",
@@ -924,7 +920,7 @@ async function run() {
       });
       txBuilder.addCmd(issueStabelcoin1ToEveDaoCmd);
 
-      const issueStabelcoin1ToCharlieDaoCmd = new IssueFungibleTokenCmd({
+      const issueStabelcoin1ToCharlieDaoCmd = new IssueFTCmd({
         issuer: treasuryDaoId,
         tokenId: stablecoin1Id,
         symbol: "USDD",
@@ -956,7 +952,7 @@ async function run() {
   const ft1Id = genRipemd160Hash(randomAsHex(20));
   const createFt1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const createNft1Cmd = new CreateFungibleTokenCmd({
+      const createNft1Cmd = new CreateFTClassCmd({
         entityId: ft1Id,
         issuer: aliceDaoId,
         name: "Fungible Token of Project-1",
@@ -987,7 +983,7 @@ async function run() {
   logInfo(`Issuing some FT-1 to Alice Dao ...`);
   const issueFt1Tx = await chainTxBuilder.begin()
     .then((txBuilder) => {
-      const issueNft1ToAliceDaoCmd = new IssueFungibleTokenCmd({
+      const issueNft1ToAliceDaoCmd = new IssueFTCmd({
         issuer: aliceDaoId,
         tokenId: ft1Id,
         symbol: "FT1",
@@ -1159,7 +1155,7 @@ async function run() {
       const nft2TransferCmd = new TransferAssetCmd({
         from: aliceDaoId,
         to: charlieDaoId,
-        assetType: ASSET_TYPE.NFT,
+        assetType: AssetType.NFT,
         classId: nft2Id,
         instanceId: 1,
       });
